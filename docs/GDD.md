@@ -18,14 +18,12 @@ O jogo começa com o jogador já em campo, na **final do campeonato do bairro** 
 - Criação rápida do personagem: nome, apelido, aparência, **posição** (atacante, meia, zagueiro, goleiro) e pé dominante.
 - Uma cena curta de contexto: a mãe/o pai na torcida, o técnico do time do bairro, o amigo de infância e o rival do outro bairro.
 
-### 2.2 A partida (de 3 a 5 minutos)
-- O jogador não controla o time inteiro. Ele vive de **6 a 8 "momentos decisivos"** do personagem:
-  - **Chute:** deslizar o dedo para mirar e definir a força. O goleiro reage.
-  - **Passe:** tocar no companheiro livre antes que o tempo acabe.
-  - **Drible:** sequência de toques/deslizes no ritmo certo.
-  - **Defesa/desarme:** tocar na hora certa (para zagueiros e goleiros, os momentos mudam conforme a posição).
-- Entre os momentos aparece um placar narrado, em texto ("O rival empata aos 30'!").
-- Ao final o jogador recebe uma **nota de 0 a 10**, calculada a partir dos acertos, gols/assistências e de um bônus de "clutch" pelos lances no fim do jogo.
+### 2.2 A partida (de 3 a 5 minutos): ✅ mecânica "Escolha e Veja"
+- A partida corre em ritmo acelerado (placar e lances narrados). Nos **6 a 8 momentos decisivos**, o jogo **para** e mostra as opções.
+- O jogador **escolhe** (ex.: "Chutar cruzado", "Tocar pro Neguinho na esquerda", "Driblar o zagueiro") e **assiste à jogada em primeira pessoa**, pelos olhos do personagem.
+- O resultado depende das escolhas, dos atributos, do estado mental e de um pouco de sorte.
+- Ao final o jogador recebe uma **nota de 0 a 10**, que soma as escolhas certas, os gols/assistências e um bônus "clutch" pelos lances decisivos no fim do jogo.
+- Os detalhes estão na seção 3.
 
 ### 2.3 O resultado define o caminho
 
@@ -38,7 +36,34 @@ O jogo começa com o jogador já em campo, na **final do campeonato do bairro** 
 - Escolhas no prólogo também contam, por exemplo: comemorar provocando o rival ou abraçar o técnico. Elas definem atributos iniciais de **personalidade** (humildade, carisma, temperamento).
 - **Ideia de retenção:** perder a final não é *game over*. A história do "azarão" que veio da peneira é um caminho tão bom quanto o outro, só que diferente.
 
-## 3. Loop principal (pós-prólogo)
+## 3. Mecânica central: "Escolha e Veja" (primeira pessoa)
+
+### 3.1 Fluxo de um momento decisivo
+1. **Aviso:** a câmera entra nos olhos do jogador, o som da torcida abafa e o coração acelera.
+2. **Olhar ao redor:** o tempo fica em câmera lenta. O jogador **arrasta o dedo para virar a cabeça** e procurar companheiros livres, o goleiro adiantado ou o marcador chegando. Olhar custa tempo.
+3. **Escolha:** de 2 a 4 opções com timer. Se o tempo acabar, o personagem decide sozinho (e geralmente mal).
+4. **Execução em primeira pessoa:** a jogada acontece pelos olhos do jogador, num clipe de 3 a 6 segundos que pode ser pulado.
+5. **Replay:** uma câmera de TV mostra o lance de fora, com a narração do locutor.
+
+### 3.2 Inovações que se apoiam na mecânica
+- **"Leitura de jogo" revela opções:** um jogador iniciante vê só 2 opções óbvias. Com o atributo *Visão* evoluído, aparecem opções escondidas (lançamento em profundidade, cavadinha, passe de calcanhar). A evolução fica **visível dentro da cena**, não só nos números.
+- **O estado mental muda o que você vê:**
+  - Nervoso numa final: visão em túnel (bordas borradas), menos opções, tempo menor.
+  - Confiante: campo mais claro e uma opção extra.
+  - Cansado: a imagem treme e o tempo encurta.
+- **Vozes do campo:** companheiros gritam "Tô livre!" (às vezes mentindo), o técnico grita da beira do campo e a torcida reage. Isso dá **informação por áudio**, e é preciso escolher em quem confiar.
+- **Escolhas com consequência fora de campo:** chutar em vez de passar para o amigo livre faz o relacionamento cair. Simular falta pode render o pênalti, ou um cartão e fama de "cai-cai" na imprensa.
+- **Vibração (háptico):** batida do coração, contato físico e a rede balançando.
+- **Momentos de memória:** gols e lances marcantes ficam num **álbum da carreira**. Clipes curtos em primeira pessoa podem ser **exportados para TikTok/Reels**, o que funciona como marketing orgânico.
+- **Rival recorrente:** o rival da final do bairro reaparece ao longo da carreira (base, profissional, seleção) e se lembra dos seus lances contra ele.
+- **Flashback no fim de carreira:** na aposentadoria, uma montagem em primeira pessoa com os momentos do álbum, desde o campinho do bairro.
+
+### 3.3 Riscos e cuidados
+- **Passividade:** assistir demais cansa. Os clipes precisam ser curtos e puláveis, e o momento de "olhar ao redor" mantém o jogador ativo.
+- **Repetição:** construir uma **biblioteca de jogadas** reaproveitáveis, com variação de estádio, uniformes, clima e adversários.
+- **Custo de produção:** a primeira pessoa pede **3D**. A sugestão é usar 3D *low-poly* estilizado, que é barato, roda em celulares fracos e envelhece bem. As animações vêm de uma base de *motion capture* pronta (ex.: Mixamo).
+
+## 3b. Loop principal (pós-prólogo)
 
 **Semana a semana:**
 1. **Agenda:** distribuir a energia da semana entre treinar, estudar, descansar, família/amigos e redes sociais.
