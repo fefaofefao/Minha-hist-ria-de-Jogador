@@ -106,7 +106,7 @@ O jogo começa com o jogador já em campo, na **final do campeonato do bairro** 
 - **Política de Família:** se o público incluir menores de 13 anos, as regras de anúncios ficam mais rígidas. A sugestão é mirar 13+.
 - É preciso ter uma **política de privacidade** publicada.
 
-## 7. Tecnologia (a decidir)
+## 7. Tecnologia: ✅ Godot 4.5, 3D low-poly
 
 | Opção | Prós | Contras |
 |---|---|---|
@@ -117,6 +117,9 @@ O jogo começa com o jogador já em campo, na **final do campeonato do bairro** 
 Como o jogo é feito **principalmente de UI e narrativa, com minijogos 2D**, Godot 4 ou Flutter + Flame atendem bem.
 
 ## 8. MVP (primeira versão jogável)
+
+**Feito:** protótipo de um momento decisivo (`jogo/`), com olhar ao redor, opção revelada, execução em primeira pessoa, replay e nota.
+
 1. Criação de personagem
 2. Prólogo completo (final do bairro, com momentos de chute, passe e drible)
 3. Escolha de clube de base (3 clubes fictícios)
@@ -125,8 +128,8 @@ Como o jogo é feito **principalmente de UI e narrativa, com minijogos 2D**, God
 6. Anúncio recompensado de teste + compra "remover anúncios"
 
 ## 9. Perguntas em aberto
-- [ ] Visual: 2D cartoon, pixel art ou ilustrado?
 - [ ] O jogador pode escolher a posição, ou ela é definida pelo desempenho?
 - [ ] Ambientação: Brasil explícito (várzea, periferia), ou genérico?
 - [ ] Haverá vida pessoal profunda (namoro, família, escola) ou foco no futebol?
-- [ ] Engine: Godot, Unity ou Flutter?
+- [x] Engine: Godot 4.5
+- [x] Visual: 3D low-poly estilizado
