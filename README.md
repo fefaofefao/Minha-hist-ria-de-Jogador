@@ -1,18 +1,29 @@
 # Minha História de Jogador ⚽
 
-Jogo para Android de **carreira de jogador de futebol**. A história começa na final do campeonato do bairro e, dependendo do seu desempenho, você vai para a base de um clube grande ou de um clube médio.
+**Do campinho do bairro ao Mundial.** Jogo de carreira de futebol para Android em que você não aperta botões para correr: você **lê o jogo**. Olhe ao redor, encontre o companheiro livre, perceba o goleiro adiantado, escolha a jogada e assista ao lance **pelos olhos do seu jogador**.
 
-A mecânica central é **"Escolha e Veja"**: nos momentos decisivos da partida, você olha ao redor, escolhe a jogada e assiste ao lance **em primeira pessoa**, pelos olhos do jogador.
+| | | | |
+|---|---|---|---|
+| ![](docs/loja/capturas/01.png) | ![](docs/loja/capturas/02.png) | ![](docs/loja/capturas/03.png) | ![](docs/loja/capturas/05.png) |
+| ![](docs/loja/capturas/06.png) | ![](docs/loja/capturas/04.png) | ![](docs/loja/capturas/07.png) | ![](docs/loja/capturas/08.png) |
 
-| Olhar revela opções | Replay da TV | Nota do lance |
-|---|---|---|
-| ![](docs/imagens/2-olhar-revela.png) | ![](docs/imagens/3-replay.png) | ![](docs/imagens/4-resultado.png) |
+## O que tem no jogo
+- **Prólogo:** a final da Copa da Vila, no campo de terra. Sua nota define o clube de base (grande, médio ou peneira).
+- **Momentos decisivos em 1ª pessoa:** 6 situações procedurais. **Olhar ao redor revela jogadas escondidas** (caneta, cobertura, lançamento, a leitura do goleiro no pênalti), com coração acelerado, visão em túnel e instinto.
+- **"E se...?":** errou o lance? Reviva-o sabendo o que vai acontecer.
+- **Comemorações** com efeito na carreira e **chuteiras** que você vê nos próprios pés.
+- **Carreira completa:** Sub-15, Sub-17, Sub-20, profissional, 9 países fictícios, Seleção (Mundial), Bola de Cristal e aposentadoria.
+- **Vida fora de campo:** 30 eventos narrativos, relações, empresário, imprensa, rival e sonhos (a casa da mãe, reformar o campinho).
+- **Retenção:** objetivos de temporada, álbum de memórias, Lance do Dia com sequência, Hall da Fama e **Nova Geração** (jogue com o filho da sua lenda).
+- **Monetização ética:** anúncios recompensados opcionais e diegéticos, intersticial com limites rígidos, VIP, remover anúncios, pacote inicial e moedas para cosméticos. Dinheiro não compra nota em campo.
 
-- **Engine:** Godot 4.5, 3D low-poly
-- **Plataforma:** Android (Google Play)
-- **Modelo:** gratuito, com anúncios e compras no app
-- **Status:** protótipo jogável de um lance ([`jogo/`](jogo/README.md))
+## Tecnologia
+Godot 4.5.1 • 3D low-poly 100% procedural • áudio sintetizado • retrato • AdMob, Google Play Billing e Firebase com adaptadores e modo simulado • bateria de testes automatizados (mais de 22 mil verificações).
 
 ## Documentação
 - [Documento de Design (GDD)](docs/GDD.md)
-- [Como abrir e testar o protótipo](jogo/README.md)
+- [Guia de publicação na Google Play](docs/PUBLICACAO.md) (AdMob, produtos, Firebase, AAB, ficha da loja)
+- [Projeto Godot: como abrir, testar e exportar](jogo/README.md)
+- [Política de privacidade](docs/privacidade.html)
+
+*Todos os clubes, ligas, marcas e jogadores são fictícios.*

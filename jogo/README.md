@@ -1,32 +1,40 @@
-# Protótipo: o Momento Decisivo
+# Projeto Godot: Minha História de Jogador
 
-Final da Copa da Vila, 88 minutos, **Vila 1 x 1 Jardim**. A bola chega em você.
-
-1. **Olhe ao redor:** arraste o dedo (ou o mouse) para virar a cabeça. O tempo corre, o coração acelera e a visão vai fechando.
-2. **Escolha:** *Chutar de longe* ou *Driblar o zagueiro*. Se você **olhar para a esquerda**, encontra o Neguinho livre e libera a opção *Tocar pro Neguinho*.
-3. **Veja em primeira pessoa:** a jogada acontece pelos olhos do jogador.
-4. **Replay:** na câmera da TV.
-5. **Nota do lance:** mostra as consequências (amizade, confiança, fama) e o que os olheiros acharam.
-
-Se o tempo acabar, o jogador trava e dá um chute desesperado.
-
-## Como abrir
-1. Instale o [Godot 4.5](https://godotengine.org/download) (versão padrão, não a .NET).
+## Abrir e jogar no computador
+1. Instale o **Godot 4.5.1** (versão padrão): https://godotengine.org/download
 2. Em *Importar*, selecione `jogo/project.godot`.
-3. Aperte **F5** para jogar.
+3. Aperte **F5**. No computador, arraste com o mouse para "olhar ao redor".
 
-## Como testar no celular Android
-1. No Godot: *Editor → Gerenciar Modelos de Exportação → Baixar*.
-2. Instale o Android SDK e o JDK 17 e configure os caminhos em *Editor → Configurações do Editor → Exportar → Android* ([guia oficial](https://docs.godotengine.org/pt-br/4.x/tutorials/export/exporting_for_android.html)).
-3. Ative a depuração USB no celular, conecte o cabo e clique no ícone do Android no canto superior direito do editor.
-4. Para a Google Play: *Projeto → Exportar → Android*. O preset já está configurado para gerar o **.aab**. A keystore de release **não** vai para o repositório.
+## Gerar o APK de teste (instalar direto no celular)
+*Projeto → Exportar → "Android APK" → Exportar projeto.* Esse preset não precisa de Gradle. Para os pré-requisitos, veja `../docs/PUBLICACAO.md` (seção 1).
 
-## Teste automático
+## Gerar o AAB para a Google Play
+Veja `../docs/PUBLICACAO.md` (seções 2 a 6).
+
+## Testes automáticos
 ```bash
-godot --headless --path jogo -- --teste
+godot --headless --path jogo res://testes/testes.tscn            # tudo
+godot --headless --path jogo res://testes/testes.tscn -- carreira # só carreira
 ```
-Esse comando roda as 4 situações (chute, drible, passe e tempo esgotado) sozinho e mostra o resultado de cada uma no terminal.
+Modo demonstração, em que o jogo decide os lances sozinho: `godot --path jogo -- --auto`
 
 ## Estrutura
-- `cenas/lance.tscn`: a cena do lance.
-- `scripts/lance.gd`: toda a lógica. O campo, os jogadores, a torcida e a interface são criados por código, sem assets externos.
+| Pasta | Conteúdo |
+|---|---|
+| `cenas/` | Uma cena por tela (raiz com script) |
+| `scripts/nucleo/` | `jogo.gd` (estado, regras, simulação, salvamento) e `dados.gd` (clubes, eventos, sonhos...) |
+| `scripts/lance/` | `situacoes.gd` (gerador de momentos decisivos) e `lance.gd` (motor 3D em primeira pessoa) |
+| `scripts/mundo/` | Cenários 3D, jogador low-poly animado e vitrine dos menus |
+| `scripts/telas/` | Menu, criação, partida, olheiros, semana, carreira, vida, álbum, loja, configurações, temporada, legado, Lance do Dia |
+| `scripts/servicos/` | Anúncios (AdMob), compras (Billing), analytics (Firebase) e áudio sintetizado |
+| `scripts/ui/` | Kit de interface, transições, diálogos e componentes |
+| `config/servicos.cfg` | IDs de anúncios e produtos, regras de frequência e chaves do Firebase |
+| `addons/minha_historia_firebase/` | Inclui o AAR do Firebase no build Gradle |
+| `testes/` | Bateria de testes (não vai para o APK) |
+
+## Onde mexer no equilíbrio
+- Chances das jogadas: `scripts/lance/situacoes.gd` (`base` de cada opção e `_calcular_chances`)
+- Evolução: `Jogo.dar_xp`, `Jogo.fator_idade`, `Jogo._envelhecer`
+- Escalação: `Jogo.situacao_titular`
+- Economia de moedas: `Jogo.fim_de_temporada`, `Jogo.registrar_desafio`, preços em `dados.gd`
+- Anúncios: `config/servicos.cfg` → `[regras_anuncios]`

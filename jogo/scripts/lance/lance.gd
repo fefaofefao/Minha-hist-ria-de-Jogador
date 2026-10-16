@@ -217,7 +217,7 @@ func _posicionar_bola_inicial() -> void:
 
 
 func _pe_do(a: Node3D) -> Vector3:
-	return a.position + (-a.global_transform.basis.z).normalized() * 0.62 + Vector3(0, 0.11, 0)
+	return a.position + (-a.global_transform.basis.z).normalized() * 0.75 + Vector3(0, 0.11, 0)
 
 
 func _capturar() -> Dictionary:
@@ -629,6 +629,12 @@ func _atualizar_pov(delta: float) -> void:
 		_t_balanco += delta * 11.0
 		bob = Vector3(cos(_t_balanco * 0.5) * 0.035, sin(_t_balanco) * 0.055, 0) * balanco
 	cam_pov.global_transform = Transform3D(base_pov * Basis(Vector3(0, 0, 1), rolagem), olho + base_pov * bob)
+	# ninguém "atravessa" a câmera: quem chega muito perto some da visão em primeira pessoa
+	var pos_cam := cam_pov.global_position
+	for papel in atores:
+		if papel != "prota":
+			var a: Node3D = atores[papel]
+			a.visible = (a.position + Vector3(0, 1.2, 0)).distance_to(pos_cam) > 0.95
 
 
 func _atualizar_coracao(delta: float) -> void:
@@ -639,7 +645,7 @@ func _atualizar_coracao(delta: float) -> void:
 	if fase == Fase.OLHANDO:
 		var urgencia := 1.0 - tempo_restante / maxf(tempo_total, 0.1)
 		alvo_bpm = 120.0 + pressao * 50.0 + urgencia * 25.0 - (frieza - 50.0) * 0.4
-		intens = 0.35 + pressao * (1.0 - frieza / 140.0) * 0.45 + urgencia * 0.25
+		intens = 0.28 + pressao * (1.0 - frieza / 140.0) * 0.32 + urgencia * 0.22
 	elif fase == Fase.EXECUTANDO:
 		alvo_bpm = 150.0
 		intens = 0.3
@@ -1062,8 +1068,12 @@ func _pos_finalizacao(d: String, prota_chutou: bool) -> void:
 			else:
 				var r: Node3D = atores.get("atacante") if resultado["acao"] == "lancamento" else atores.get("parceiro")
 				seguir_no = r
-				_mover(r, r.position + Vector3(0, 0, 3.0), 1.2)
-				await _mover(prota, r.position + Vector3(1.0, 0, 3.5), 1.4).finished
+				var destino_r := r.position + Vector3(0, 0, 3.0)
+				_mover(r, destino_r, 1.2)
+				var dir := prota.position - destino_r
+				dir.y = 0.0
+				dir = dir.normalized() if dir.length() > 0.1 else Vector3(1, 0, 0)
+				await _mover(prota, destino_r + dir * 2.2, 1.4).finished
 				r.fazer_pose("comemora_bracos")
 			balanco = 0.0
 		"defesa":
@@ -1197,6 +1207,8 @@ func _replay() -> void:
 		var meio_z := (prota.position.z + -40.0) / 2.0
 		cam_tv.global_transform = Transform3D(Basis(), Vector3(lado_cam * 24.0, 8.0, meio_z + 4.0)).looking_at(bola.position, Vector3.UP)
 	cam_tv.make_current()
+	for papel in atores:
+		atores[papel].visible = true
 	await _executar(false)
 	if comemoracao != "":
 		for c in ctx.get("comemoracoes", []):

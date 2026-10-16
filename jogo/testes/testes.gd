@@ -17,6 +17,8 @@ func _ready() -> void:
 	# isola os saves dos testes
 	Jogo.perfil = Jogo._perfil_padrao()
 	Jogo.carreira = {}
+	if tudo or "compilar" in args:
+		_testar_compilacao("res://scripts")
 	if tudo or "situacoes" in args:
 		_testar_situacoes()
 	if tudo or "carreira" in args:
@@ -39,6 +41,18 @@ func checar(cond: bool, msg: String) -> void:
 		falhas += 1
 		push_error("FALHOU: " + msg)
 		print("FALHOU: ", msg)
+
+
+# ---------------------------------------------------------------- compilação
+
+func _testar_compilacao(pasta: String) -> void:
+	var dir := DirAccess.open(pasta)
+	for f in dir.get_files():
+		if f.ends_with(".gd"):
+			var scr: GDScript = load(pasta + "/" + f)
+			checar(scr != null and scr.can_instantiate(), "compila: %s/%s" % [pasta, f])
+	for d in dir.get_directories():
+		_testar_compilacao(pasta + "/" + d)
 
 
 # ---------------------------------------------------------------- situações
@@ -293,7 +307,8 @@ func _esperar_lance(l: Lance, limite_ms: int):
 func _testar_telas() -> void:
 	print("== telas")
 	var telas := ["res://cenas/menu.tscn", "res://cenas/criacao.tscn", "res://cenas/hub.tscn", "res://cenas/loja.tscn",
-		"res://cenas/config.tscn", "res://cenas/album.tscn", "res://cenas/temporada.tscn", "res://cenas/legado.tscn"]
+		"res://cenas/config.tscn", "res://cenas/album.tscn", "res://cenas/carreira.tscn", "res://cenas/vida.tscn",
+		"res://cenas/desafio.tscn", "res://cenas/legado.tscn", "res://cenas/olheiros.tscn"]
 	Jogo.nova_carreira({"nome": "Tela", "apelido": "Telinha", "posicao": "Ponta"})
 	Jogo.preparar_prologo()
 	Jogo.finalizar_partida({"gols_nos": 2, "gols_adv": 1, "lances": [], "penaltis": null})

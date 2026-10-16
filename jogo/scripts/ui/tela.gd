@@ -24,6 +24,32 @@ func _ready() -> void:
 	add_child(_camada_avisos)
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_voltar()
+
+
+## Botão/gesto "voltar" do Android: nunca fecha o app sem perguntar.
+func _voltar() -> void:
+	if _trocando or _camada_avisos.get_child_count() > 0:
+		return
+	var cena := get_tree().current_scene
+	if cena == null:
+		return
+	var caminho := cena.scene_file_path
+	match caminho:
+		"res://cenas/menu.tscn":
+			var r := await dialogo("Sair do jogo?", "Seu progresso está salvo.", [["Sair", "fechar", "perigo"], ["Continuar jogando", "play", "primario"]], "info")
+			if r == 0:
+				get_tree().quit()
+		"res://cenas/partida.tscn", "res://cenas/criacao.tscn", "res://cenas/olheiros.tscn", "res://cenas/temporada.tscn":
+			pass  # telas com fluxo próprio: o voltar não interrompe
+		"res://cenas/hub.tscn", "res://cenas/config.tscn", "res://cenas/legado.tscn", "res://cenas/desafio.tscn":
+			ir("res://cenas/menu.tscn")
+		_:
+			ir("res://cenas/hub.tscn" if Jogo.tem_carreira() and Jogo.carreira.get("fase", "") in ["base", "pro"] else "res://cenas/menu.tscn")
+
+
 func ir(cena: String) -> void:
 	if _trocando:
 		return

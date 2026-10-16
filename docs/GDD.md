@@ -1,135 +1,88 @@
-# Minha História de Jogador — Documento de Design (rascunho v0.1)
+# Minha História de Jogador: Documento de Design (v1.0)
 
-> Documento vivo. Tudo aqui é proposta para discussão; marque com ✅ o que for aprovado.
+> Simulação de carreira de futebol com **decisões em primeira pessoa**. Godot 4.5, 3D low-poly, Android, retrato, sessões curtas.
 
-## 1. Visão geral
+## 1. Pilares
+1. **Ler o jogo é a habilidade.** Não há controle de habilidade motora: o jogador olha ao redor, interpreta e decide.
+2. **Ver pelos próprios olhos.** Cada decisão é executada em primeira pessoa, com coração, pressão e visão em túnel.
+3. **A vida decide a carreira.** Família, técnico, amigo, empresário e rival mudam o que acontece em campo.
+4. **Do bairro ao mundo.** O cenário evolui junto com a carreira: várzea, depois o CT da base, depois o estádio, depois a Seleção.
 
-- **Gênero:** simulação de carreira de futebol com narrativa e decisões, com partidas jogadas em "momentos decisivos".
-- **Plataforma:** Android (Google Play). iOS pode vir depois.
-- **Público:** fãs de futebol de 13 anos ou mais, que jogam em sessões curtas de 3 a 10 minutos.
-- **Modelo:** gratuito, com anúncios e compras no app.
-- **Pitch:** *"Do campinho do bairro à Copa do Mundo: cada lance e cada escolha escrevem a sua história."*
+## 2. Loop de jogo
+**Semana (2 a 4 min):** agenda com 2 atividades, depois um acontecimento da vida (carta com escolhas) e por fim a partida. Na partida, de 1 a 4 momentos decisivos, seguidos do relatório.
 
-## 2. Prólogo: a final do bairro
+**Temporada:** liga em turno único (8 ou 10 times). Os 2 primeiros fazem a final. Pode haver convocação para a Seleção. No fim: balanço, prêmios, evolução, rival e propostas.
 
-O jogo começa com o jogador já em campo, na **final do campeonato do bairro** (ex.: "Copa da Vila"). Há olheiros na arquibancada.
+**Carreira:** dos 15 anos (Sub-15, Sub-17, Sub-20) ao profissional, ao exterior (9 países fictícios) e à aposentadoria (dos 33 aos 39 anos). Depois vem o legado e a Nova Geração (o filho herda talento).
 
-### 2.1 Antes do apito (cerca de 1 minuto)
-- Criação rápida do personagem: nome, apelido, aparência, **posição** (atacante, meia, zagueiro, goleiro) e pé dominante.
-- Uma cena curta de contexto: a mãe/o pai na torcida, o técnico do time do bairro, o amigo de infância e o rival do outro bairro.
-
-### 2.2 A partida (de 3 a 5 minutos): ✅ mecânica "Escolha e Veja"
-- A partida corre em ritmo acelerado (placar e lances narrados). Nos **6 a 8 momentos decisivos**, o jogo **para** e mostra as opções.
-- O jogador **escolhe** (ex.: "Chutar cruzado", "Tocar pro Neguinho na esquerda", "Driblar o zagueiro") e **assiste à jogada em primeira pessoa**, pelos olhos do personagem.
-- O resultado depende das escolhas, dos atributos, do estado mental e de um pouco de sorte.
-- Ao final o jogador recebe uma **nota de 0 a 10**, que soma as escolhas certas, os gols/assistências e um bônus "clutch" pelos lances decisivos no fim do jogo.
-- Os detalhes estão na seção 3.
-
-### 2.3 O resultado define o caminho
-
-| Desempenho | Resultado |
+## 3. Momento decisivo ("Escolha e Veja")
+| Fase | O que acontece |
 |---|---|
-| Nota ≥ 8 **ou** decisivo no título | Convite de **clube grande** de base (escolher entre 2 propostas) |
-| Nota de 6 a 7,9 | Convite de **clube médio** |
-| Nota < 6 | **Peneira** num clube médio: uma segunda chance, com um minijogo de treino |
+| Plano de TV | Mostra a situação ("88' • Final"); a câmera entra nos olhos do jogador |
+| Leitura | Tempo em câmera lenta. **Arrastar o dedo vira a cabeça.** O timer depende de Frieza e pressão |
+| Pontos de interesse | Olhar ~0,45 s para um POI **revela uma opção escondida** (companheiro livre, goleiro adiantado, pernas abertas do zagueiro, leitura do goleiro no pênalti) |
+| Instinto | Com Visão ≥ 55, cada opção mostra uma sensação: Arriscado, Possível, Boa ou Ótima |
+| Talento | Opções escondidas aparecem sozinhas se o atributo for alto (ex.: Drible ≥ 72 libera a caneta) |
+| Execução | A jogada acontece em primeira pessoa (chute, drible, passe, cabeceio, pênalti, falta) |
+| Comemoração | Depois do gol, você escolhe como comemorar; cada comemoração tem efeito na carreira |
+| "E se...?" | Se errar, pode **reviver o lance** (anúncio, ficha ou VIP), uma vez por partida, sabendo o que vai acontecer |
+| Replay | Câmera de TV (ou atrás do gol no pênalti), que pode ser pulada |
 
-- Escolhas no prólogo também contam, por exemplo: comemorar provocando o rival ou abraçar o técnico. Elas definem atributos iniciais de **personalidade** (humildade, carisma, temperamento).
-- **Ideia de retenção:** perder a final não é *game over*. A história do "azarão" que veio da peneira é um caminho tão bom quanto o outro, só que diferente.
+**6 situações procedurais:** chance na área, mano a mano, contra-ataque, cruzamento (a bola congela no ar), falta com barreira e pênalti. A posição do jogador muda a frequência de cada uma.
 
-## 3. Mecânica central: "Escolha e Veja" (primeira pessoa)
+**Chance de cada opção** = base + atributos × peso − pressão × (1 − Frieza) − (força do adversário − overall) + confiança.
 
-### 3.1 Fluxo de um momento decisivo
-1. **Aviso:** a câmera entra nos olhos do jogador, o som da torcida abafa e o coração acelera.
-2. **Olhar ao redor:** o tempo fica em câmera lenta. O jogador **arrasta o dedo para virar a cabeça** e procurar companheiros livres, o goleiro adiantado ou o marcador chegando. Olhar custa tempo.
-3. **Escolha:** de 2 a 4 opções com timer. Se o tempo acabar, o personagem decide sozinho (e geralmente mal).
-4. **Execução em primeira pessoa:** a jogada acontece pelos olhos do jogador, num clipe de 3 a 6 segundos que pode ser pulado.
-5. **Replay:** uma câmera de TV mostra o lance de fora, com a narração do locutor.
+**Desfechos:** gol, assistência, defesa, trave, fora, perdeu a bola, interceptado e "quase". A nota do lance soma na nota da partida.
 
-### 3.2 Inovações que se apoiam na mecânica
-- **"Leitura de jogo" revela opções:** um jogador iniciante vê só 2 opções óbvias. Com o atributo *Visão* evoluído, aparecem opções escondidas (lançamento em profundidade, cavadinha, passe de calcanhar). A evolução fica **visível dentro da cena**, não só nos números.
-- **O estado mental muda o que você vê:**
-  - Nervoso numa final: visão em túnel (bordas borradas), menos opções, tempo menor.
-  - Confiante: campo mais claro e uma opção extra.
-  - Cansado: a imagem treme e o tempo encurta.
-- **Vozes do campo:** companheiros gritam "Tô livre!" (às vezes mentindo), o técnico grita da beira do campo e a torcida reage. Isso dá **informação por áudio**, e é preciso escolher em quem confiar.
-- **Escolhas com consequência fora de campo:** chutar em vez de passar para o amigo livre faz o relacionamento cair. Simular falta pode render o pênalti, ou um cartão e fama de "cai-cai" na imprensa.
-- **Vibração (háptico):** batida do coração, contato físico e a rede balançando.
-- **Momentos de memória:** gols e lances marcantes ficam num **álbum da carreira**. Clipes curtos em primeira pessoa podem ser **exportados para TikTok/Reels**, o que funciona como marketing orgânico.
-- **Rival recorrente:** o rival da final do bairro reaparece ao longo da carreira (base, profissional, seleção) e se lembra dos seus lances contra ele.
-- **Flashback no fim de carreira:** na aposentadoria, uma montagem em primeira pessoa com os momentos do álbum, desde o campinho do bairro.
+## 4. Progressão
+- **8 atributos:** Finalização, Passe, Drible, Cabeceio, Velocidade, Físico, Visão, Frieza. O overall é ponderado pela posição (Atacante, Ponta, Meia).
+- **XP** vem de treinos e dos lances; o ganho diminui com a idade e perto do potencial (de 80 a 92, mais herança).
+- **Envelhecimento:** depois dos 30, Velocidade e Físico caem mais rápido; Visão, Frieza e Passe aguentam melhor.
+- **Escalação:** depende de overall, forma (média recente), relação com o técnico e energia, comparados com a força do clube. Pode dar titular, reserva (entra no 2º tempo) ou fora da lista.
+- **Lesões:** o risco sobe com energia baixa. Há tratamento por anúncio ou moedas.
 
-### 3.3 Riscos e cuidados
-- **Passividade:** assistir demais cansa. Os clipes precisam ser curtos e puláveis, e o momento de "olhar ao redor" mantém o jogador ativo.
-- **Repetição:** construir uma **biblioteca de jogadas** reaproveitáveis, com variação de estádio, uniformes, clima e adversários.
-- **Custo de produção:** a primeira pessoa pede **3D**. A sugestão é usar 3D *low-poly* estilizado, que é barato, roda em celulares fracos e envelhece bem. As animações vêm de uma base de *motion capture* pronta (ex.: Mixamo).
+## 5. Vida fora de campo
+- **30 eventos narrativos** com condições (idade, fama, flags, dinheiro, forma) e escolhas com risco. Exemplos: o amigo reprovado na peneira, o empresário Marcão, a festa na véspera, a promessa da casa para a mãe, o vídeo antigo vazado, a proposta suspeita de aposta.
+- **Relações:** família, técnico, torcida e amigo.
+- **Sonhos (11):** primeiro contrato, carro, casa da mãe, Seleção, exterior, título, artilharia, 100 gols, Mundial, Bola de Cristal e reformar o campinho da Vila. Alguns são comprados com o dinheiro da carreira.
+- **Rival:** nasce na final do bairro, evolui em paralelo, aparece nas notícias e nos clássicos, e é comparado com você no legado.
+- **Álbum de memórias (16):** cada lance marcante vira uma figurinha. As bloqueadas mostram a dica do que fazer.
 
-## 3b. Loop principal (pós-prólogo)
+## 6. Retenção
+| Sistema | Gancho |
+|---|---|
+| Prólogo forte | Final do bairro com tutorial embutido; a nota define o clube (grande, médio ou peneira) |
+| Objetivo da temporada | Meta escolhida no início, com recompensa no fim |
+| Lance do Dia | O mesmo lance para todos no dia; sequência de 7 dias com bônus crescente |
+| Álbum e sonhos | Metas de curto e longo prazo sempre visíveis |
+| Rival | Rivalidade pessoal contínua |
+| Nova Geração | Meta-progressão infinita (o filho herda talento e fama) |
+| Hall da Fama | Comparação entre gerações |
 
-**Semana a semana:**
-1. **Agenda:** distribuir a energia da semana entre treinar, estudar, descansar, família/amigos e redes sociais.
-2. **Evento/decisão:** cartas narrativas (ex.: "Um empresário quer te representar", "Seu amigo te chama pra uma festa na véspera do jogo").
-3. **Jogo do fim de semana:** de 3 a 6 momentos decisivos, que viram nota e evolução.
-4. **Resultado:** XP nos atributos, moral, fama e dinheiro.
+## 7. Monetização (ética e sem "pagar para vencer")
+**Anúncios recompensados, sempre opcionais e diegéticos:**
+- "E se...?" (reviver o lance que deu errado, o momento de maior emoção)
+- Gravar comercial do patrocinador (dinheiro da carreira, até 3 por dia)
+- Massagem do fisio (+30 de energia, 1 por semana)
+- Tratamento intensivo (−1 semana de lesão)
+- Dobrar o bônus da temporada
+- Nova tentativa no Lance do Dia
 
-### Atributos
-- **Técnicos:** finalização, passe, drible, defesa (ou reflexo/posicionamento, para goleiros).
-- **Físicos:** velocidade, resistência, força.
-- **Mentais:** confiança, foco, liderança.
-- **Vida:** saúde, felicidade, relacionamento com família/técnico/torcida, dinheiro e fama.
+**Intersticial:** só depois da partida. Nenhum antes da 3ª partida, no máximo 1 a cada 2 partidas, com intervalo de 3 min. Nunca para pagantes. Sem banners.
 
-## 4. Fases da carreira
+**Compras:** Pacote do Moleque (oferta única de 48 h, mostrada logo depois do prólogo), Craque VIP, Remover anúncios e 3 pacotes de moedas.
 
-1. **Base:** Sub-15 → Sub-17 → Sub-20 (subir para o profissional ou ser dispensado).
-2. **Profissional:** estreia, disputa por titularidade, empréstimos.
-3. **Transferências:** clubes maiores e o exterior (ligas fictícias inspiradas em Europa, Ásia, EUA e Oriente Médio).
-4. **Seleção:** convocações, Copa.
-5. **Fim de carreira:** aposentadoria, seguido de uma tela de **legado** (troféus, recordes, "Hall da Fama"). A partir daí dá para começar de novo com outro personagem, ou com o **filho do jogador** (Nova Geração+).
+**Moedas (moeda premium):** usadas em cosméticos (chuteiras visíveis em primeira pessoa, comemorações, cores de cabelo), fichas "E se...?", treino com lenda e tratamento. Elas **não compram nota em campo**.
 
-## 5. Monetização (sem "pagar para ganhar" pesado)
+## 8. Tecnologia
+- **Godot 4.5.1**, renderer Mobile, retrato 720×1280 com área segura (notch).
+- **Tudo procedural:** cenários, jogadores, ícones de UI (Material Icons), **áudio sintetizado** (torcida, apito, coração, samba com cavaquinho em Karplus-Strong).
+- **Serviços com adaptadores:** AdMob (Poing), Google Play Billing (oficial) e Firebase (plugin próprio em `android_plugins/firebase`). Sem os plugins, rodam em modo simulado.
+- **Testes:** `godot --headless --path jogo res://testes/testes.tscn` (compilação, situações, 6 carreiras completas, salvamento, compras, 30 lances 3D e telas).
 
-**Anúncios**
-- **Recompensados (os principais):** recuperar energia, refazer um momento decisivo, dobrar o salário da semana, ver a proposta de um clube secreto.
-- **Intersticiais:** no máximo 1 a cada X partidas, e nunca no meio de um jogo.
-
-**Compras no app**
-- **Remover anúncios** (compra única).
-- **Moedas/"Craque Coins":** cosméticos (chuteiras, visual, comemorações), itens de vida (carro, casa).
-- **Passe de Temporada:** recompensas extras e eventos especiais.
-- **Pacote Iniciante:** oferta única barata.
-
-**Regra de ouro:** dinheiro compra **conveniência e estilo**, não nota em campo.
-
-## 6. Pontos legais e da Google Play
-- **Nada de clubes, ligas ou jogadores reais** (exige licença). Tudo deve ser fictício, com nomes e escudos próprios.
-- **Anúncios:** AdMob com mediação, consentimento GDPR/LGPD (UMP SDK) e classificação etária correta.
-- **Compras:** Google Play Billing.
-- **Política de Família:** se o público incluir menores de 13 anos, as regras de anúncios ficam mais rígidas. A sugestão é mirar 13+.
-- É preciso ter uma **política de privacidade** publicada.
-
-## 7. Tecnologia: ✅ Godot 4.5, 3D low-poly
-
-| Opção | Prós | Contras |
-|---|---|---|
-| **Godot 4** (recomendado) | Gratuito, leve, ótimo em 2D e UI, exporta AAB para Android | Plugins de AdMob/Billing são da comunidade |
-| Unity | Muitos tutoriais, SDKs oficiais de anúncios e IAP | Mais pesado, licença/termos |
-| Flutter + Flame | Ótimo para jogos com muita UI/menus | Menos ferramentas para animação de jogo |
-
-Como o jogo é feito **principalmente de UI e narrativa, com minijogos 2D**, Godot 4 ou Flutter + Flame atendem bem.
-
-## 8. MVP (primeira versão jogável)
-
-**Feito:** protótipo de um momento decisivo (`jogo/`), com olhar ao redor, opção revelada, execução em primeira pessoa, replay e nota.
-
-1. Criação de personagem
-2. Prólogo completo (final do bairro, com momentos de chute, passe e drible)
-3. Escolha de clube de base (3 clubes fictícios)
-4. Uma temporada Sub-15 (loop semanal com 10 eventos de cartas)
-5. Salvamento local
-6. Anúncio recompensado de teste + compra "remover anúncios"
-
-## 9. Perguntas em aberto
-- [ ] O jogador pode escolher a posição, ou ela é definida pelo desempenho?
-- [ ] Ambientação: Brasil explícito (várzea, periferia), ou genérico?
-- [ ] Haverá vida pessoal profunda (namoro, família, escola) ou foco no futebol?
-- [x] Engine: Godot 4.5
-- [x] Visual: 3D low-poly estilizado
+## 9. Próximos passos sugeridos
+- Posições de defesa e goleiro (situações próprias)
+- Clássicos com narração especial e "jogo da vida" na final do Mundial
+- Vestiário pré-jogo (discurso do técnico como escolha)
+- Eventos sazonais (Copa, fim de ano) via Remote Config
+- Localização (inglês e espanhol)

@@ -32,6 +32,10 @@ func _ready() -> void:
 	if Engine.has_singleton("MinhaHistoriaFirebase"):
 		_firebase = Engine.get_singleton("MinhaHistoriaFirebase")
 		backend = "firebase"
+		var cfg := ConfigFile.new()
+		cfg.load("res://config/servicos.cfg")
+		_firebase.inicializar(str(cfg.get_value("firebase", "app_id", "")), str(cfg.get_value("firebase", "api_key", "")),
+			str(cfg.get_value("firebase", "project_id", "")))
 		if _firebase.has_signal("remote_config_fetched"):
 			_firebase.connect("remote_config_fetched", _remote_recebido)
 		_firebase.fetchRemoteConfig(JSON.stringify(PADROES_REMOTE))

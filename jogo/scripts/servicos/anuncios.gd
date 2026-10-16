@@ -185,8 +185,8 @@ func talvez_intersticial(local: String) -> void:
 # ---------------------------------------------------------------- simulação
 
 func _simular(recompensado: bool, local: String) -> bool:
-	if DisplayServer.get_name() == "headless":
-		return true  # testes automáticos
+	if DisplayServer.get_name() == "headless" or "--auto" in OS.get_cmdline_user_args():
+		return true  # testes automáticos / modo demonstração
 	var fundo := ColorRect.new()
 	fundo.color = Color(0.02, 0.02, 0.04, 0.97)
 	fundo.mouse_filter = Control.MOUSE_FILTER_STOP

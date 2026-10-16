@@ -23,6 +23,8 @@ var _braco_d: Node3D
 var _tronco: Node3D
 var _cabeca: Node3D
 var _numero_label: Label3D
+var _calcao: MeshInstance3D
+var _coxas: Array[MeshInstance3D] = []
 
 var _ultima_pos := Vector3.ZERO
 var _fase := 0.0
@@ -37,6 +39,9 @@ var mostrar_corpo_superior := true:
 			_cabeca.visible = v
 			_braco_e.visible = v
 			_braco_d.visible = v
+			_calcao.visible = v  # em primeira pessoa o calção taparia a visão da bola
+			for c in _coxas:
+				c.visible = v  # nos pés aparecem só meião e chuteira
 
 
 static func mat(cor: Color) -> StandardMaterial3D:
@@ -63,6 +68,7 @@ func configurar(p_camisa: Color, p_calcao: Color, p_visual := {}, p_numero := 10
 func _construir() -> void:
 	for c in get_children():
 		c.queue_free()
+	_coxas.clear()
 	var pele: Color = PELES[clampi(int(visual.get("pele", 2)), 0, PELES.size() - 1)]
 	var ch = visual.get("chuteira", Color("111111"))
 	var chuteira: Color = Color(ch) if ch is String else ch
@@ -73,7 +79,7 @@ func _construir() -> void:
 	add_child(_quadril)
 	_perna_e = _criar_perna(-0.11, m_pele, chuteira)
 	_perna_d = _criar_perna(0.11, m_pele, chuteira)
-	_malha(_box(Vector3(0.44, 0.3, 0.27)), Vector3(0, 0.03, 0), mat(calcao), _quadril)
+	_calcao = _malha(_box(Vector3(0.44, 0.3, 0.27)), Vector3(0, 0.03, 0), mat(calcao), _quadril)
 
 	_tronco = Node3D.new()
 	_tronco.position = Vector3(0, 0.14, 0)
@@ -99,6 +105,13 @@ func _construir() -> void:
 	esfera.radial_segments = 10
 	esfera.rings = 5
 	_malha(esfera, Vector3(0, 0.0, 0), m_pele, _cabeca)
+	# rosto simples (a frente do jogador é -Z)
+	var olho := mat(Color("15110f"))
+	var cor_cab: Color = CORES_CABELO[clampi(int(visual.get("cor_cabelo", 0)), 0, CORES_CABELO.size() - 1)]
+	for lado in [-0.05, 0.05]:
+		_malha(_box(Vector3(0.034, 0.032, 0.02)), Vector3(lado, 0.015, -0.129), olho, _cabeca)
+		_malha(_box(Vector3(0.052, 0.013, 0.02)), Vector3(lado, 0.058, -0.124), mat(cor_cab.darkened(0.2)), _cabeca)
+	_malha(_box(Vector3(0.026, 0.04, 0.03)), Vector3(0, -0.02, -0.14), mat(pele.darkened(0.08)), _cabeca)
 	_criar_cabelo()
 
 	_numero_label = Label3D.new()
@@ -119,7 +132,7 @@ func _criar_perna(x: float, m_pele: Material, chuteira: Color) -> Node3D:
 	var piv := Node3D.new()
 	piv.position = Vector3(x, 0, 0)
 	_quadril.add_child(piv)
-	_malha(_box(Vector3(0.13, 0.36, 0.13)), Vector3(0, -0.2, 0), m_pele, piv)
+	_coxas.append(_malha(_box(Vector3(0.13, 0.36, 0.13)), Vector3(0, -0.2, 0), m_pele, piv))
 	_malha(_box(Vector3(0.14, 0.38, 0.14)), Vector3(0, -0.58, 0), mat(meiao), piv)
 	_malha(_box(Vector3(0.15, 0.09, 0.27)), Vector3(0, -0.81, -0.05), mat(chuteira), piv)
 	return piv
@@ -234,6 +247,10 @@ func _process(delta: float) -> void:
 			bd_z = -0.5
 			inclina = 0.08
 			if t > 0.7:
+				pose = ""
+		"toque":
+			pd = sin(clampf(_t_pose / 0.28, 0.0, 1.0) * PI) * 0.75
+			if _t_pose > 0.3:
 				pose = ""
 		"comemora_bracos":
 			be_z = 2.6 + sin(_t_pose * 9.0) * 0.15

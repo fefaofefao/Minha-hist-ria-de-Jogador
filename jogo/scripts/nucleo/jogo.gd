@@ -508,6 +508,7 @@ func nova_temporada() -> void:
 		calendario.append({"semana": i + 1, "adv": adversarios[i], "casa": i % 2 == 0, "tipo": "liga", "jogado": false})
 	var liga: String = "Copa Estadual %s" % carreira["categoria"] if carreira["categoria"] != "Profissional" else Dados.PAISES[pais]["liga"]
 	carreira["temp"] = {"liga": liga, "times": times, "tabela": tabela, "calendario": calendario,
+		"attrs_inicio": carreira["atributos"].duplicate(),
 		"gols": 0, "assist": 0, "jogos": 0, "notas": [], "objetivo": {}, "rodadas": adversarios.size(),
 		"campeao": "", "artilheiro": false, "selecao": [], "fim": false}
 	carreira["semana_info"] = {}
@@ -802,6 +803,8 @@ func contexto_lance(partida: Dictionary, momento: Dictionary, gols_nos: int, gol
 		ctx["cor_fora"] = Color("f2f2f2") if c1.get_luminance() < 0.6 else Color("222a3a")
 	ctx["rng"].seed = ctx["semente"]
 	ctx["titulo_intro"] = "%d' • %s" % [minuto, partida.get("competicao", "")]
+	if "--auto" in OS.get_cmdline_user_args():
+		ctx["auto"] = true  # modo demonstração/teste: o jogo decide sozinho
 	return ctx
 
 
@@ -1246,6 +1249,8 @@ func _noticias_semana(resumo: Dictionary) -> void:
 
 func fim_de_temporada() -> Dictionary:
 	var temp: Dictionary = carreira["temp"]
+	if temp.get("resumo", null) is Dictionary:
+		return temp["resumo"]  # já processada (ex.: o app foi fechado nesta tela)
 	var media := media_temporada()
 	var resumo := {"temporada": carreira["temporada"], "ano": carreira["ano"], "clube": nome_clube(carreira["clube"]),
 		"categoria": carreira["categoria"], "jogos": temp["jogos"], "gols": temp["gols"], "assist": temp["assist"],
@@ -1274,12 +1279,12 @@ func fim_de_temporada() -> Dictionary:
 		"clube": nome_clube(carreira["clube"]), "categoria": carreira["categoria"], "jogos": temp["jogos"],
 		"gols": temp["gols"], "assist": temp["assist"], "media": snappedf(media, 0.01), "titulos": resumo["titulos"]})
 	# envelhece e evolui
-	var antes: Dictionary = carreira["atributos"].duplicate()
+	var antes: Dictionary = temp.get("attrs_inicio", carreira["atributos"]).duplicate()
 	carreira["jogador"]["idade"] = int(carreira["jogador"]["idade"]) + 1
 	carreira["ano"] = int(carreira["ano"]) + 1
 	_envelhecer()
 	for a in carreira["atributos"]:
-		var d := float(carreira["atributos"][a]) - float(antes[a])
+		var d := float(carreira["atributos"][a]) - float(antes.get(a, carreira["atributos"][a]))
 		if absf(d) >= 0.5:
 			resumo["evolucao"][a] = d
 	# rival evolui
@@ -1288,6 +1293,8 @@ func fim_de_temporada() -> Dictionary:
 	if rng.randf() < 0.25:
 		r["titulos"] = int(r["titulos"]) + 1
 	resumo["rival"] = {"nome": r["nome"], "clube": nome_clube(r["clube"]), "overall": int(r["overall"]), "gols": int(r["gols"])}
+	temp["resumo"] = resumo
+	temp["ofertas"] = []
 	salvar_carreira()
 	Analytics.evento("temporada_fim", {"temporada": carreira["temporada"], "media": snappedf(media, 0.1), "gols": temp["gols"]})
 	return resumo
@@ -1303,8 +1310,18 @@ func _envelhecer() -> void:
 		carreira["atributos"][a] = maxf(30.0, float(carreira["atributos"][a]) - queda * f * rng.randf_range(0.6, 1.3))
 
 
-## Propostas para a próxima temporada.
+## Propostas para a próxima temporada (geradas uma vez por temporada).
 func ofertas_temporada() -> Array:
+	var guardadas: Array = carreira["temp"].get("ofertas", [])
+	if not guardadas.is_empty():
+		return guardadas
+	var novas := _gerar_ofertas()
+	carreira["temp"]["ofertas"] = novas
+	salvar_carreira()
+	return novas
+
+
+func _gerar_ofertas() -> Array:
 	var idade := int(carreira["jogador"]["idade"])
 	var ov := float(overall())
 	var lista: Array = []
