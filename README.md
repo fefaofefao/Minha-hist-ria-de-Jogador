@@ -2,7 +2,8 @@
 
 | Versão | Arquivo | SHA-256 |
 |---|---|---|
-| 1.1.0 (versionCode 2) | `MinhaHistoriaDeJogador-v1.1.0.apk` | `77c04ff672b53636fda01fed1d4574dce5c077584518665a1432f6ec75fc4e5c` |
+| 1.2.0 (versionCode 3) | `MinhaHistoriaDeJogador-v1.2.0.apk` | `a717aa959d4cf483f42e1416a5d6999c0302adb5efcba863cb4f5cb5e5a9da5a` |
+| 1.1.0 (versionCode 2) | removido (está no histórico desta branch) | `77c04ff672b53636fda01fed1d4574dce5c077584518665a1432f6ec75fc4e5c` |
 | 1.0.0 (versionCode 1) | removido (está no histórico desta branch) | `cf7fdb9abdb4c68ec77c1ba1b8d84de31583d2a983f525c4477a914c95752399` |
 
 **Como instalar no Android:** baixe o APK no celular, toque nele e permita "instalar apps desconhecidos" para o navegador ou o gerenciador de arquivos.
