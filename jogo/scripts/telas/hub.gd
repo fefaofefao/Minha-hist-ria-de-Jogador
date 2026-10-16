@@ -33,6 +33,7 @@ func construir() -> void:
 	var chips := UI.hbox(10)
 	chips.add_child(Componentes.chip_moedas())
 	chips.add_child(Componentes.chip_dinheiro())
+	chips.add_child(UI.chip("grupo", UI.formatar_numero(Jogo.fas()), UI.AZUL, Color(UI.AZUL, 0.14)))
 	if int(Jogo.perfil.get("fichas", 0)) > 0:
 		chips.add_child(UI.chip("replay", "%d" % int(Jogo.perfil["fichas"]), UI.ROXO))
 	chips.add_child(UI.expansor())

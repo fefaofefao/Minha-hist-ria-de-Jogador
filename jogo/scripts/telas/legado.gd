@@ -33,7 +33,7 @@ func construir() -> void:
 		grade.add_theme_constant_override("h_separation", 10)
 		grade.add_theme_constant_override("v_separation", 10)
 		for d in [["Jogos", l["jogos"]], ["Gols", l["gols"]], ["Assist.", l["assist"]], ["Títulos", l["titulos"]],
-				["Média", "%.2f" % float(l["media"])], ["Bolas de Cristal", l["bolas"]]]:
+				["Média", "%.2f" % float(l["media"])], ["Bolas de Cristal", l["bolas"]], ["Fãs", UI.formatar_numero(float(l.get("fas", 0)))]]:
 			var cc := UI.cartao(UI.CARTAO, 16, 14)
 			cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var v := UI.vbox(0)

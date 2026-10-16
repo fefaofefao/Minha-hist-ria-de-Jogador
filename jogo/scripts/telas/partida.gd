@@ -305,6 +305,17 @@ func _jogar() -> void:
 
 
 func _momento(m: Dictionary) -> void:
+	if m["tipo"] == "defesa_tardia":
+		# o esforço defensivo só vira lance se o resultado estiver em jogo
+		if gols_nos < gols_adv:
+			m["tipo"] = Situacoes.sortear_tipo(Jogo.carreira["jogador"]["posicao"], _rng)
+		elif gols_nos - gols_adv >= 2:
+			_narrar("Você volta pra ajudar na marcação. O time administra o placar.", "escudo")
+			return
+		else:
+			_narrar("O %s pressiona! Você volta pra ajudar a defender..." % adv["sigla"], "escudo", UI.LARANJA, true)
+			Audio.torcida(0.8)
+			await get_tree().create_timer(0.6).timeout
 	_narrar("MOMENTO DECISIVO!", "olho", UI.OURO, true)
 	Audio.tocar("coracao")
 	await get_tree().create_timer(0.7).timeout
@@ -322,6 +333,20 @@ func _momento(m: Dictionary) -> void:
 		"assistencia":
 			gols_nos += 1
 			_narrar("ASSISTÊNCIA SUA! %s  (nota %s)" % [r.get("opcao_texto", ""), sinal], "troca", UI.VERDE, true)
+		"desarme", "bloqueio", "afastou":
+			_narrar("QUE VOLTA! Você salvou na defesa: %s  (nota %s)" % [r.get("opcao_texto", ""), sinal], "escudo", UI.VERDE, true)
+			mundo.festa_torcida(3)
+		"gol_sofrido":
+			gols_adv += 1
+			_narrar("Gol do %s. Você foi superado na jogada  (nota %s)" % [adv["sigla"], sinal], "bola", UI.VERMELHO)
+		"falta_dura":
+			_narrar("Cartão amarelo pra você  (nota %s)" % sinal, "info", UI.OURO)
+			if r.get("falta_gol", false):
+				await get_tree().create_timer(0.8).timeout
+				gols_adv += 1
+				_narrar("Na cobrança da falta... gol do %s." % adv["sigla"], "bola", UI.VERMELHO)
+		"salvou_goleiro":
+			_narrar("Você foi driblado, mas o goleiro salvou!  (nota %s)" % sinal, "escudo", UI.TEXTO2)
 		_:
 			var t: String = {"defesa": "O goleiro defendeu.", "fora": "Pra fora.", "trave": "Na trave!", "perdeu": "Perdeu a bola.",
 				"interceptado": "Passe interceptado.", "passou_defesa": "Quase! Grande jogada."}.get(d, "")
@@ -409,6 +434,48 @@ func _decidido(rodada: int, pn: int, pa: int, so_nos: bool) -> bool:
 
 # ---------------------------------------------------------------- relatório
 
+## "O que os jornais falaram de você:" (manchetes ligadas às suas decisões).
+func _secao_jornais(lista: Array) -> Control:
+	var sec := Componentes.secao("O que os jornais falaram de você:", "jornal", UI.OURO)
+	for i in lista.size():
+		var mch: Dictionary = lista[i]
+		var bom: bool = mch.get("bom", true)
+		var card := UI.cartao_borda(Color("f4efe2"), UI.OURO if bom else Color("8a8172"), 18, 16)
+		var cl := UI.vbox(6)
+		card.add_child(cl)
+		var topo := UI.hbox(8)
+		topo.add_child(UI.icone("jornal" if not String(mch["veiculo"]).begins_with("@") else "celular", 22, Color("5a5040")))
+		topo.add_child(UI.rotulo(String(mch["veiculo"]).to_upper(), 18, Color("5a5040"), "titulo"))
+		cl.add_child(topo)
+		var tit := UI.paragrafo(mch["titulo"], 27 if i == 0 else 24, Color("15120c"))
+		tit.add_theme_font_override("font", UI.fonte("titulo"))
+		cl.add_child(tit)
+		sec[1].add_child(card)
+		card.modulate.a = 0.0
+		var tw := card.create_tween()
+		tw.tween_interval(0.35 + i * 0.35)
+		tw.tween_property(card, "modulate:a", 1.0, 0.3)
+	return sec[0]
+
+
+func _cartao_fas(r: Dictionary) -> Control:
+	var ganho := int(r.get("fas_ganho", 0))
+	var c := UI.cartao(UI.CARTAO, 20, 16)
+	var l := UI.hbox(14)
+	c.add_child(l)
+	l.add_child(UI.icone("grupo", 44, UI.AZUL))
+	var col := UI.vbox(2)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(UI.rotulo("FÃS", 20, UI.TEXTO2, "titulo"))
+	col.add_child(UI.rotulo("%s no total" % UI.formatar_numero(float(r.get("fas_total", Jogo.fas()))), 24, UI.TEXTO, "forte"))
+	if int(r.get("virais", 0)) > 0:
+		col.add_child(UI.rotulo("Seu lance viralizou nas redes!", 19, UI.OURO))
+	l.add_child(col)
+	var txt := ("+%s" % UI.formatar_numero(ganho)) if ganho >= 0 else UI.formatar_numero(ganho)
+	l.add_child(UI.titulo(txt, 40, UI.VERDE if ganho >= 0 else UI.VERMELHO))
+	return c
+
+
 func _relatorio(r: Dictionary) -> void:
 	ui.visible = false
 	var fundo := ColorRect.new()
@@ -468,19 +535,25 @@ func _relatorio(r: Dictionary) -> void:
 		create_tween().tween_property(nn, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	else:
 		conteudo.add_child(UI.paragrafo("Você não entrou em campo nesta partida.", 24))
+	if not r.get("manchetes", []).is_empty():
+		conteudo.add_child(_secao_jornais(r["manchetes"]))
+	if int(r.get("fas_ganho", 0)) != 0 or r.has("fas_total"):
+		conteudo.add_child(_cartao_fas(r))
 	if not r.get("lances", []).is_empty():
 		var sec_l := Componentes.secao("Seus lances", "olho")
 		for l in r["lances"]:
 			var d: String = l["desfecho"]
 			var delta := Jogo.delta_nota(l)
-			var bom: bool = d in ["gol", "assistencia"]
+			var bom := Situacoes.bom(d)
 			var linha := UI.hbox(10)
 			var mn := UI.rotulo("%d'" % int(l.get("minuto", 0)), 22, UI.TEXTO3, "titulo")
 			mn.custom_minimum_size.x = 50
 			linha.add_child(mn)
 			linha.add_child(UI.icone("olho" if l.get("opcao_descoberta", false) else ("bola" if bom else "fechar"), 26, UI.VERDE if bom else UI.TEXTO2))
 			var nome_d := {"gol": "Gol", "assistencia": "Assistência", "defesa": "Defesa do goleiro", "fora": "Pra fora", "trave": "Trave",
-				"perdeu": "Perdeu a bola", "interceptado": "Interceptado", "passou_defesa": "Quase"}.get(d, d) as String
+				"perdeu": "Perdeu a bola", "interceptado": "Interceptado", "passou_defesa": "Quase",
+				"desarme": "Desarme", "bloqueio": "Chute travado", "afastou": "Afastou o perigo", "falta_dura": "Cartão amarelo",
+				"salvou_goleiro": "Driblado (o goleiro salvou)", "gol_sofrido": "Gol sofrido"}.get(d, d) as String
 			var tx := UI.paragrafo("%s • %s" % [l.get("opcao_texto", ""), nome_d], 21, UI.TEXTO if bom else UI.TEXTO2)
 			tx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			linha.add_child(tx)

@@ -65,7 +65,7 @@ func _jogar() -> void:
 	Engine.time_scale = 1.0
 	visible = true
 	Audio.musica(true)
-	var bom: bool = r["desfecho"] in ["gol", "assistencia"]
+	var bom := Situacoes.bom(r["desfecho"])
 	if not bom and not _tentativa_extra:
 		var esc := await Tela.dialogo("Quase!", "Quer tentar de novo assistindo a um vídeo?", [["Tentar de novo", "anuncio", "anuncio"], ["Receber prêmio de consolação", "moeda", "fantasma"]], "replay", UI.ROXO)
 		if esc == 0 and await Anuncios.recompensado("desafio_retry"):

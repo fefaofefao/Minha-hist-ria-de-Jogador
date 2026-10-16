@@ -196,6 +196,9 @@ const MEMORIAS := {
 	"estreia_pro": {"titulo": "Estreia de gala", "desc": "Gol como profissional."},
 	"exterior": {"titulo": "Do bairro para o mundo", "desc": "Primeiro gol no exterior."},
 	"selecao": {"titulo": "Com a amarelinha", "desc": "Gol pela Seleção."},
+	"bicicleta": {"titulo": "De bicicleta", "desc": "Gol de bicicleta num escanteio."},
+	"voleio": {"titulo": "De primeira", "desc": "Gol de voleio depois de um lançamento."},
+	"salvou_defesa": {"titulo": "Atacante que marca", "desc": "Voltou para defender no fim do jogo e segurou o resultado."},
 }
 
 const PATROCINADORES := ["Raio Energético", "Tênis Pulso", "Guaraná Serra", "Banco Alvorada", "Telecom Vox", "Relógios Kairós"]

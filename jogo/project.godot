@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Minha História de Jogador"
 config/description="Do campinho do bairro à Copa do Mundo: cada lance e cada escolha escrevem a sua história."
-config/version="1.1.0"
+config/version="1.2.0"
 run/main_scene="res://cenas/menu.tscn"
 config/features=PackedStringArray("4.5", "Mobile")
 boot_splash/bg_color=Color(0.0431, 0.0667, 0.1098, 1)

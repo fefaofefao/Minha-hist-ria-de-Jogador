@@ -67,6 +67,9 @@ func carregar_carreira() -> void:
 	var d = _ler_json(ARQ_CARREIRA)
 	if d is Dictionary and d.get("versao", 0) == VERSAO:
 		carreira = d
+		# saves antigos (antes da v1.2): fãs estimados pela fama
+		if not carreira.has("fas"):
+			carreira["fas"] = int(float(carreira.get("status", {}).get("fama", 0.0)) * 600.0) + 60
 
 
 func salvar_carreira() -> void:
@@ -399,7 +402,7 @@ func nova_carreira(d: Dictionary) -> void:
 		"empresario": "Marcão", "patrocinador": Dados.PATROCINADORES[rng.randi() % Dados.PATROCINADORES.size()],
 		"estat": {"jogos": 0, "gols": 0, "assist": 0, "titulos": 0, "selecao_jogos": 0, "selecao_gols": 0, "bolas_cristal": 0, "notas_soma": 0.0},
 		"ultimas_notas": [], "sem_gols": 0, "noticias": [], "semana_info": {},
-		"pai": herdado.get("pai", ""),
+		"pai": herdado.get("pai", ""), "fas": 60 + int(herdado.get("fas", 0)), "ultimos_tipos": [],
 	}
 	salvar_carreira()
 	Analytics.evento("tutorial_inicio", {"posicao": pos, "geracao": geracao})
@@ -418,8 +421,9 @@ func preparar_prologo() -> Dictionary:
 		"titular": "titular", "importancia": 1.0, "competicao": "Final da Copa da Vila",
 		"momentos": [
 			{"minuto": 31, "tipo": "chance_area", "tutorial": true},
-			{"minuto": 63, "tipo": "mano_a_mano"},
-			{"minuto": 88, "tipo": "cruzamento"},
+			{"minuto": 63, "tipo": ["mano_a_mano", "tabela", "rebote"][rng.randi() % 3]},
+			{"minuto": 80, "tipo": "defesa_tardia"},
+			{"minuto": 88, "tipo": ["cruzamento", "escanteio", "lancamento_recebe"][rng.randi() % 3]},
 		],
 		"gols_bg": [{"minuto": 22, "time": "eles", "autor": carreira["rival"]["nome"]}],
 		"mata_mata": true,
@@ -606,6 +610,10 @@ func aplicar_agenda(acoes: Array) -> Array:
 				txt.append("+%.1f %s" % [ganhos[g], Dados.NOMES_ATRIBUTOS[g]])
 		if a.has("cura"):
 			carreira["status"]["lesao"] = maxi(0, int(carreira["status"]["lesao"]) - int(a["cura"]))
+		if id == "redes":
+			var n_fas := int(fas() * 0.015) + int(_base_fas(carreira["clube"]) * 0.5)
+			ganhar_fas(n_fas)
+			txt.append("+%s fãs" % UI.formatar_numero(n_fas))
 		if id == "redes" and rng.randf() < 0.12:
 			_mudar("status.moral", -6)
 			txt.append("Comentários maldosos: -6 Confiança")
@@ -738,8 +746,17 @@ func preparar_partida(jogo: Dictionary) -> Dictionary:
 	for i in n:
 		var seg: float = (faixa[1] - faixa[0]) / float(n)
 		minutos.append(int(faixa[0] + seg * i + rng.randf_range(2, seg - 2)))
+	# variedade: evita repetir os tipos das últimas partidas e da própria partida
+	var evitar: Array = carreira.get("ultimos_tipos", []).duplicate()
 	for m in minutos:
-		momentos.append({"minuto": m, "tipo": Situacoes.sortear_tipo(carreira["jogador"]["posicao"], rng)})
+		var t := Situacoes.sortear_tipo(carreira["jogador"]["posicao"], rng, evitar)
+		evitar.append(t)
+		momentos.append({"minuto": m, "tipo": t})
+	# esforço defensivo no fim: decidido na hora, conforme o placar
+	if n > 0 and rng.randf() < 0.55:
+		var mm := rng.randi_range(84, 89)
+		if minutos.is_empty() or mm - int(minutos[-1]) >= 3:
+			momentos.append({"minuto": mm, "tipo": "defesa_tardia"})
 	var cenario := "base" if carreira["categoria"] != "Profissional" else "estadio"
 	if jogo["tipo"] == "selecao":
 		cenario = "selecao"
@@ -826,13 +843,21 @@ func contexto_lance(partida: Dictionary, momento: Dictionary, gols_nos: int, gol
 	return ctx
 
 
+## Ações que viralizam (mais fãs e manchetes maiores quando dão certo).
+const ACOES_VIRAIS := ["caneta", "cobertura", "cavadinha", "bicicleta", "voleio", "drible_goleiro", "calcanhar", "falta_curva", "carrinho"]
+
+
 ## Nota do lance (contribuição para a nota da partida).
 func delta_nota(r: Dictionary) -> float:
 	var d := {"gol": 1.25, "assistencia": 1.0, "passou_defesa": 0.35, "trave": 0.15, "defesa": 0.05,
-		"fora": -0.3, "perdeu": -0.45, "interceptado": -0.4}.get(r["desfecho"], 0.0) as float
+		"fora": -0.3, "perdeu": -0.45, "interceptado": -0.4,
+		"desarme": 0.9, "bloqueio": 0.8, "afastou": 0.6, "falta_dura": -0.3, "salvou_goleiro": -0.25, "gol_sofrido": -0.7,
+		}.get(r["desfecho"], 0.0) as float
 	if r["acao"] in ["penalti_esq", "penalti_dir", "cavadinha"] and r["desfecho"] != "gol":
 		d = -0.8
-	if r["acao"] in ["cobertura", "cavadinha", "falta_curva", "caneta"] and r["desfecho"] == "gol":
+	if r["acao"] in ACOES_VIRAIS and Situacoes.bom(r["desfecho"]):
+		d += 0.3
+	if r.get("saiu_jogando", false):
 		d += 0.3
 	if r.get("apressado", false):
 		d -= 0.3
@@ -855,27 +880,35 @@ func finalizar_partida(rel: Dictionary) -> Dictionary:
 	var gols := 0
 	var assist := 0
 	var xp := {}
+	var heroi_defesa := false
 	for l in lances:
 		nota += delta_nota(l)
-		if l["desfecho"] == "gol" and not (l["acao"] in ["passe", "lancamento", "ajeitar"]):
+		if l["desfecho"] == "gol" and not (l["acao"] in Situacoes.ACOES_PASSE):
 			gols += 1
 		if l["desfecho"] == "assistencia":
 			assist += 1
+		if l["desfecho"] in ["desarme", "bloqueio", "afastou"] and int(l.get("minuto", 0)) >= 78:
+			heroi_defesa = true
 		for a in _atributos_da_acao(l["acao"]):
-			xp[a] = float(xp.get(a, 0.0)) + (2.5 if l["desfecho"] in ["gol", "assistencia"] else 1.2)
+			xp[a] = float(xp.get(a, 0.0)) + (2.5 if Situacoes.bom(l["desfecho"]) else 1.2)
 	nota += 0.3 if venceu else (-0.2 if not empate else 0.0)
+	if heroi_defesa and (venceu or empate):
+		nota += 0.25  # o esforço na defesa segurou o resultado
 	nota += rng.randf_range(-0.2, 0.2)
 	nota = clampf(nota, 3.0, 10.0)
 	var jogou: bool = p["titular"] in ["titular", "reserva"]
 	var resumo := {"nota": nota if jogou else 0.0, "gols": gols, "assist": assist, "venceu": venceu, "empate": empate and rel.get("penaltis") == null,
 		"gols_nos": gn, "gols_adv": ga, "penaltis": rel.get("penaltis"), "ganhos": {}, "efeitos": [], "memorias": [], "titulo": "",
-		"adv": p["adv"], "tipo": p["tipo"], "jogou": jogou, "lances": lances}
+		"adv": p["adv"], "tipo": p["tipo"], "jogou": jogou, "lances": lances, "heroi_defesa": heroi_defesa}
+	_registrar_tipos(lances)
 	if p["tipo"] == "prologo":
 		ultimo_relatorio = resumo
 		for l in lances:
-			if l["desfecho"] == "gol" and not (l["acao"] in ["passe", "lancamento", "ajeitar"]):
+			if l["desfecho"] == "gol" and not (l["acao"] in Situacoes.ACOES_PASSE):
 				_memoria("final_bairro", "Final da Copa da Vila", int(l.get("minuto", 0)))
 		carreira["estat"]["notas_soma"] = nota
+		_atualizar_fas(resumo, p)
+		resumo["manchetes"] = manchetes(resumo, p)
 		salvar_carreira()
 		return resumo
 
@@ -919,6 +952,7 @@ func finalizar_partida(rel: Dictionary) -> Dictionary:
 	else:
 		_mudar("status.moral", -3.0)
 		_mudar("status.energia", 10.0)
+	_atualizar_fas(resumo, p)
 
 	# tabela / mata-mata
 	if p["tipo"] == "liga":
@@ -946,6 +980,9 @@ func finalizar_partida(rel: Dictionary) -> Dictionary:
 	perfil["contadores"]["partidas_total"] = int(perfil["contadores"]["partidas_total"]) + 1
 	salvar_perfil()
 	_noticias_semana(resumo)
+	resumo["manchetes"] = manchetes(resumo, p)
+	if not resumo["manchetes"].is_empty():
+		carreira["noticias"].push_front(resumo["manchetes"][0]["titulo"])
 	carreira["semana"] = int(carreira["semana"]) + 1
 	carreira["semana_info"] = {}
 	_mudar("status.energia", 15.0)  # recuperação natural da semana
@@ -994,9 +1031,111 @@ func _atributos_da_acao(acao: String) -> Array:
 			return ["velocidade", "drible"]
 		"passe":
 			return ["passe", "visao"]
-		"lancamento":
+		"lancamento", "calcanhar":
 			return ["passe", "visao"]
+		"tabela":
+			return ["passe", "finalizacao"]
+		"bicicleta":
+			return ["finalizacao", "fisico"]
+		"voleio", "domina_chute":
+			return ["finalizacao", "frieza"]
+		"drible_goleiro":
+			return ["drible", "frieza"]
+		"carrinho":
+			return ["fisico", "velocidade"]
+		"bote":
+			return ["fisico", "frieza"]
+		"conter", "antecipar":
+			return ["velocidade", "visao"]
+		"afastar_cabeca":
+			return ["cabeceio", "fisico"]
+		"chutao":
+			return ["fisico"]
+		"sair_jogando":
+			return ["drible", "frieza"]
+		"deixar_goleiro":
+			return ["visao"]
 	return []
+
+
+## "O que os jornais falaram de você" (ver Jornal).
+func manchetes(resumo: Dictionary, p: Dictionary) -> Array:
+	return Jornal.gerar(resumo, p, rng)
+
+
+func _registrar_tipos(lances: Array) -> void:
+	var u: Array = carreira.get("ultimos_tipos", [])
+	for l in lances:
+		var t: String = l.get("tipo", "")
+		if t != "" and not Situacoes.defensivo(t):
+			u.append(t)
+	while u.size() > 5:
+		u.pop_front()
+	carreira["ultimos_tipos"] = u
+
+
+# ================================================================ fãs
+
+const MARCOS_FAS := [1000, 10000, 100000, 1000000, 10000000, 50000000]
+const MOEDAS_MARCO := [40, 80, 150, 300, 600, 1000]
+
+
+func fas() -> int:
+	return int(carreira.get("fas", 0))
+
+
+## Fãs que um clube "entrega" por jogo bom, pelo tamanho dele.
+func _base_fas(id: String) -> float:
+	if id == "selecao":
+		return 4500.0
+	var tier := clampi(int(clube(id).get("tier", 1)), 1, 5)
+	var base: float = [15.0, 45.0, 140.0, 450.0, 1400.0][tier - 1]
+	if clube(id).get("pais", "br") != "br":
+		base *= 1.6
+	return base
+
+
+## Fãs crescem com boas atuações (mais em clubes grandes, finais e lances que viralizam).
+func _atualizar_fas(resumo: Dictionary, p: Dictionary) -> void:
+	var antes := fas()
+	var ganho := 0
+	if resumo["jogou"]:
+		var base := _base_fas(p["nos"]) * float({"Sub-15": 0.35, "Sub-17": 0.5, "Sub-20": 0.7}.get(carreira["categoria"], 1.0))
+		if p["tipo"] == "prologo":
+			base = 30.0
+		var mult := 1.0
+		if p["tipo"] in ["final", "selecao", "prologo"]:
+			mult *= 2.5
+		if p.get("rival", false):
+			mult *= 1.5
+		var desemp := (float(resumo["nota"]) - 6.2) + int(resumo["gols"]) * 0.9 + int(resumo["assist"]) * 0.5
+		var virais := 0
+		for l in resumo.get("lances", []):
+			if Situacoes.bom(l["desfecho"]) and (l["acao"] in ACOES_VIRAIS or l.get("opcao_descoberta", false)):
+				virais += 1
+		desemp += virais * 1.2
+		if resumo["venceu"]:
+			desemp += 0.4
+		if resumo.get("heroi_defesa", false):
+			desemp += 0.8
+		resumo["virais"] = virais
+		if desemp > 0.0:
+			ganho = int(base * mult * desemp * rng.randf_range(0.85, 1.15) + antes * 0.004 * desemp * mult)
+		else:
+			ganho = -int(minf(antes * 0.006 * -desemp, antes * 0.03))
+	carreira["fas"] = maxi(0, antes + ganho)
+	resumo["fas_ganho"] = ganho
+	resumo["fas_total"] = fas()
+	for i in MARCOS_FAS.size():
+		if antes < MARCOS_FAS[i] and fas() >= MARCOS_FAS[i]:
+			resumo["marco_fas"] = MARCOS_FAS[i]
+			ganhar_moedas(MOEDAS_MARCO[i], "marco_fas")
+			resumo["efeitos"].append("+%d moedas (%s fãs!)" % [MOEDAS_MARCO[i], UI.formatar_numero(MARCOS_FAS[i])])
+			Analytics.evento("marco_fas", {"fas": MARCOS_FAS[i]})
+
+
+func ganhar_fas(qtd: int) -> void:
+	carreira["fas"] = maxi(0, fas() + qtd)
 
 
 func _registrar_resultado(a: String, b: String, ga: int, gb: int) -> void:
@@ -1189,7 +1328,7 @@ func _memorias_da_partida(resumo: Dictionary, lances: Array, p: Dictionary) -> v
 	var gols := 0
 	for l in lances:
 		var minuto := int(l.get("minuto", 0))
-		var meu_gol: bool = l["desfecho"] == "gol" and not (l["acao"] in ["passe", "lancamento", "ajeitar"])
+		var meu_gol: bool = l["desfecho"] == "gol" and not (l["acao"] in Situacoes.ACOES_PASSE)
 		if meu_gol:
 			gols += 1
 			var id := ""
@@ -1204,6 +1343,10 @@ func _memorias_da_partida(resumo: Dictionary, lances: Array, p: Dictionary) -> v
 					id = "cabeca"
 				"caneta":
 					id = "caneta"
+				"bicicleta":
+					id = "bicicleta"
+				"voleio":
+					id = "voleio"
 			for m in [id, "primeiro_gol", "segunda_chance" if l.get("segunda_chance", false) else "",
 					"rival" if p.get("rival", false) else "", "final" if p["tipo"] == "final" else "",
 					"selecao" if p["tipo"] == "selecao" else "", "estreia_pro" if carreira["fase"] == "pro" else "",
@@ -1213,6 +1356,9 @@ func _memorias_da_partida(resumo: Dictionary, lances: Array, p: Dictionary) -> v
 					novas.append(m)
 		if l["desfecho"] == "assistencia" and l["acao"] == "lancamento" and _memoria("lancamento", adv_nome, minuto):
 			novas.append("lancamento")
+		if l["desfecho"] in ["desarme", "bloqueio", "afastou"] and minuto >= 78 and (resumo["venceu"] or resumo["empate"]) \
+				and _memoria("salvou_defesa", adv_nome, minuto):
+			novas.append("salvou_defesa")
 	if gols >= 3 and _memoria("hat_trick", adv_nome, 90):
 		novas.append("hat_trick")
 	if int(carreira["estat"]["gols"]) >= 100:
@@ -1470,6 +1616,10 @@ func aceitar_oferta(o: Dictionary) -> void:
 		carreira["tecnico"] = Dados.NOMES_TECNICO[rng.randi() % Dados.NOMES_TECNICO.size()]
 		carreira["flags"].erase("amigo_no_clube")
 		carreira["noticias"].push_front("Novo desafio: você assinou com o %s." % nome_clube(o["clube"]))
+		var novos_fas := int(_base_fas(o["clube"]) * 12.0 * (1.0 if o["tipo"] == "pro" else 0.4))
+		if novos_fas > 0:
+			ganhar_fas(novos_fas)
+			carreira["noticias"].push_front("A torcida do %s abraçou o reforço: +%s fãs." % [nome_clube(o["clube"]), UI.formatar_numero(novos_fas)])
 		Analytics.evento("transferencia", {"de": antigo, "para": o["clube"]})
 	# o rival também muda de patamar
 	var r: Dictionary = carreira["rival"]
@@ -1654,7 +1804,7 @@ func legado() -> Dictionary:
 	return {"pontos": pontos, "titulo": titulo, "gols": e["gols"], "assist": e["assist"], "titulos": e["titulos"],
 		"jogos": e["jogos"], "media": float(e["notas_soma"]) / jogos, "bolas": e["bolas_cristal"],
 		"nome": carreira["jogador"]["nome"], "apelido": carreira["jogador"]["apelido"], "geracao": carreira.get("geracao", 1),
-		"rival": carreira["rival"]}
+		"rival": carreira["rival"], "fas": fas()}
 
 
 func aposentar() -> Dictionary:
@@ -1682,7 +1832,7 @@ func heranca() -> Dictionary:
 	if carreira["sonhos"].get("campinho", false):
 		bonus_pot += 1.5
 	return {"atributos": {melhor: 5.0}, "potencial": bonus_pot, "fama": clampf(float(l["pontos"]) / 80.0, 0.0, 15.0),
-		"dinheiro": float(carreira["dinheiro"]) * 0.1, "pai": l["apelido"], "geracao": int(carreira.get("geracao", 1)) + 1,
+		"dinheiro": float(carreira["dinheiro"]) * 0.1, "pai": l["apelido"], "fas": int(fas() * 0.05), "geracao": int(carreira.get("geracao", 1)) + 1,
 		"melhor": melhor}
 
 
@@ -1754,7 +1904,8 @@ func patrocinio_disponivel() -> int:
 
 func valor_patrocinio() -> float:
 	var sal := float(carreira.get("contrato", {}).get("salario", 800.0))
-	return snappedf(maxf(1500.0, sal * 0.6 + float(carreira["status"]["fama"]) * 400.0) * float(Analytics.remoto("bonus_patrocinio")), 100.0)
+	var por_fas := minf(float(fas()) * 0.03, 250000.0)
+	return snappedf(maxf(1500.0, sal * 0.6 + float(carreira["status"]["fama"]) * 400.0 + por_fas) * float(Analytics.remoto("bonus_patrocinio")), 100.0)
 
 
 func receber_patrocinio() -> float:

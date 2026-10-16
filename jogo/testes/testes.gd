@@ -105,6 +105,9 @@ func _lances_simulados(p: Dictionary) -> Array:
 		var op: Dictionary = visiveis[rng.randi() % visiveis.size()]
 		var res := Situacoes.resolver(s, op, rng.randf() < 0.1, rng)
 		res["minuto"] = m["minuto"]
+		res["tipo"] = s["tipo"]
+		res["parceiro"] = ctx.get("parceiro", "")
+		tipos_vistos[s["tipo"]] = int(tipos_vistos.get(s["tipo"], 0)) + 1
 		res["comemoracao"] = "galera" if res["desfecho"] == "gol" else ""
 		lances.append(res)
 	return lances
@@ -125,7 +128,21 @@ func _jogar_partida(p: Dictionary) -> Dictionary:
 	var pen = null
 	if p.get("mata_mata", false) and gn == ga:
 		pen = {"nos": 5, "adv": 4} if rng.randf() < 0.5 else {"nos": 3, "adv": 4}
-	return Jogo.finalizar_partida({"gols_nos": gn, "gols_adv": ga, "lances": lances, "penaltis": pen})
+	var fas_antes := Jogo.fas()
+	var r := Jogo.finalizar_partida({"gols_nos": gn, "gols_adv": ga, "lances": lances, "penaltis": pen})
+	var mch: Array = r.get("manchetes", [])
+	checar(not mch.is_empty(), "há manchetes depois da partida")
+	if r["jogou"] and not lances.is_empty():
+		checar(mch.size() >= 2, "manchetes falam dos lances")
+	for m in mch:
+		var t: String = m.get("titulo", "")
+		checar(t.length() > 10 and t.find("%") < 0 and t.find("{") < 0, "manchete bem formada: %s" % t)
+		checar(String(m.get("veiculo", "")) != "", "manchete tem veículo")
+		amostra_manchetes[t] = true
+	checar(Jogo.fas() >= 0, "fãs não negativos")
+	checar(int(r.get("fas_total", -1)) == Jogo.fas(), "total de fãs no resumo")
+	checar(Jogo.fas() - fas_antes == int(r.get("fas_ganho", 0)) or r.has("marco_fas") or Jogo.fas() >= fas_antes, "ganho de fãs consistente")
+	return r
 
 
 func _testar_carreira_completa(indice: int) -> void:
@@ -202,6 +219,16 @@ func _testar_carreira_completa(indice: int) -> void:
 		checar(Jogo.carreira["temp"]["calendario"].size() >= 7, "calendário montado")
 	var c := Jogo.carreira
 	print("   contrato: ", contagem_contrato)
+	print("   tipos de lance: ", tipos_vistos)
+	print("   fãs no fim: %d | manchetes diferentes até aqui: %d" % [Jogo.fas(), amostra_manchetes.size()])
+	if indice == 0:
+		var ks := amostra_manchetes.keys()
+		ks.shuffle()
+		for k in ks.slice(0, 30):
+			print("      > ", k)
+	checar(tipos_vistos.size() >= 10, "carreira tem lances variados (%d tipos)" % tipos_vistos.size())
+	checar(Jogo.fas() >= 1000, "fãs crescem ao longo da carreira (%d)" % Jogo.fas())
+	checar(amostra_manchetes.size() >= 40, "manchetes variadas (%d)" % amostra_manchetes.size())
 	print("   idade final %d | overall máx %d | jogos %d | gols %d | títulos %d | sonhos %d | memórias %d | países %s | moedas %d" % [
 		c["jogador"]["idade"], maior_overall, c["estat"]["jogos"], c["estat"]["gols"], c["estat"]["titulos"],
 		c["sonhos"].size(), c["memorias"].size(), paises.keys(), Jogo.moedas()])
@@ -215,6 +242,8 @@ func _testar_carreira_completa(indice: int) -> void:
 
 
 var contagem_contrato := {}
+var tipos_vistos := {}
+var amostra_manchetes := {}
 
 
 func _testar_contrato() -> void:

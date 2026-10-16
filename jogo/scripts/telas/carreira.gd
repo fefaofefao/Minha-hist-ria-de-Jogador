@@ -68,7 +68,7 @@ func _atributos() -> void:
 	var e: Dictionary = Jogo.carreira["estat"]
 	var est := Componentes.secao("Carreira", "grafico", UI.AZUL)
 	var jogos := maxi(1, int(e["jogos"]))
-	for d in [["Jogos", e["jogos"]], ["Gols", e["gols"]], ["Assistências", e["assist"]], ["Títulos", e["titulos"]],
+	for d in [["Fãs", UI.formatar_numero(Jogo.fas())], ["Jogos", e["jogos"]], ["Gols", e["gols"]], ["Assistências", e["assist"]], ["Títulos", e["titulos"]],
 			["Média geral", "%.2f" % (float(e["notas_soma"]) / jogos) if int(e["jogos"]) > 0 else "-"],
 			["Jogos pela Seleção", e["selecao_jogos"]], ["Gols pela Seleção", e["selecao_gols"]]]:
 		var l := UI.hbox(8)

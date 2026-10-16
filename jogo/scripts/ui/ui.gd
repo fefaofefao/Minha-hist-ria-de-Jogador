@@ -361,6 +361,21 @@ static func rolagem() -> ScrollContainer:
 	return s
 
 
+## 1234 -> "1.234"; 12345 -> "12,3 mil"; 2500000 -> "2,5 mi".
+static func formatar_numero(v: float) -> String:
+	var n := absf(v)
+	var t := ""
+	if n >= 1_000_000.0:
+		t = ("%.1f mi" % (n / 1_000_000.0)).replace(".", ",")
+	elif n >= 10_000.0:
+		t = ("%.1f mil" % (n / 1000.0)).replace(".", ",")
+	elif n >= 1000.0:
+		t = "%d.%03d" % [int(n) / 1000, int(n) % 1000]
+	else:
+		t = str(int(n))
+	return ("-" if v < 0 else "") + t.replace(",0 ", " ")
+
+
 static func formatar_dinheiro(v: float) -> String:
 	var n := absf(v)
 	var s := ""

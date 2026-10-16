@@ -1,4 +1,4 @@
-# Minha História de Jogador: Documento de Design (v1.1)
+# Minha História de Jogador: Documento de Design (v1.2)
 
 > Simulação de carreira de futebol com **decisões em primeira pessoa**. Godot 4.5, 3D low-poly, Android, retrato, sessões curtas.
 
@@ -18,7 +18,7 @@
 ## 3. Momento decisivo ("Escolha e Veja")
 | Fase | O que acontece |
 |---|---|
-| Plano de TV | Mostra a situação ("88' • Final"); a câmera entra nos olhos do jogador |
+| Plano de TV | Mostra a situação ("88' • Final") e o SEU jogador inteiro chegando para a jogada (três planos: atrás, lateral, de frente). A câmera para atrás do ombro e uma piscada rápida entra nos olhos dele (o corpo só some em primeira pessoa) |
 | Leitura | Tempo em câmera lenta. **Arrastar o dedo vira a cabeça.** O timer depende de Frieza e pressão |
 | Pontos de interesse | Olhar ~0,45 s para um POI **revela uma opção escondida** (companheiro livre, goleiro adiantado, pernas abertas do zagueiro, leitura do goleiro no pênalti) |
 | Instinto | Com Visão ≥ 55, cada opção mostra uma sensação: Arriscado, Possível, Boa ou Ótima |
@@ -28,11 +28,17 @@
 | "E se...?" | Se errar, pode **reviver o lance** (anúncio, ficha ou VIP), uma vez por partida, sabendo o que vai acontecer |
 | Replay | Câmera de TV (ou atrás do gol no pênalti), que pode ser pulada |
 
-**6 situações procedurais:** chance na área, mano a mano, contra-ataque, cruzamento (a bola congela no ar), falta com barreira e pênalti. A posição do jogador muda a frequência de cada uma.
+**13 situações procedurais:**
+- **Ataque (11):** chance na área, mano a mano, contra-ataque, cruzamento, falta com barreira, pênalti, **tabela** (com calcanhar escondido), **escanteio** (com **bicicleta** para quem tem Físico), **rebote** (o goleiro espalma, decisão de reflexo com menos tempo, drible no goleiro caído), **chute de longe** (encobrir do meio da rua, lateral passando) e **bola nas costas da zaga** (dominar no peito, voleio, driblar o goleiro que sai).
+- **Defesa (2), o atacante que volta pra marcar:** nos minutos finais, se o placar está empatado ou com vantagem de 1 gol, o jogo pode chamar um lance defensivo. **Desarme** (carrinho, bote, acompanhar e fechar o chute, antecipar o passe escondido) e **afastar** o cruzamento na nossa área (de cabeça, chutão, dominar e sair jogando, gritar "deixa!" para o goleiro). Acertar segura o resultado (+nota, memória "Atacante que marca", manchete). Errar pode virar cartão, falta perigosa ou gol deles.
+
+**Variedade:** os tipos das últimas partidas e da própria partida ficam bem mais raros (anti-repetição), cada tipo tem vários textos, posições sorteadas e opções que mudam (ex.: às vezes "encher o pé", às vezes "cortar o zagueiro"). O texto de abertura muda com minuto e placar ("Precisamos do gol!", "SEGURA!").
 
 **Chance de cada opção** = base + atributos × peso − pressão × (1 − Frieza) − (força do adversário − overall) + confiança.
 
-**Desfechos:** gol, assistência, defesa, trave, fora, perdeu a bola, interceptado e "quase". A nota do lance soma na nota da partida.
+**Desfechos:** gol, assistência, defesa, trave, fora, perdeu a bola, interceptado e "quase"; na defesa: desarme, chute travado, afastou, cartão amarelo, o goleiro salvou e gol sofrido. A nota do lance soma na nota da partida.
+
+**"O que os jornais falaram de você:"** no relatório de toda partida aparecem até 3 manchetes de veículos fictícios (Jornal do Bairro, Blog da Base, Diário do Gol, Rádio Arquibancada, @resenha.fc...). Elas falam das SUAS decisões: o lance que viralizou ("A caneta aos 40 minutos está rodando o mundo! Que lance!"), a escolha certa ("O chute no canto foi a melhor decisão"), a melhor opção que você não usou ("'Tocar pro Juninho' era a melhor opção, diz comentarista"), a hesitação ("Travou!"), o esforço na defesa ("O carrinho salvador aos 87' garantiu a vitória") e os fãs. A manchete principal também entra nas notícias do hub.
 
 ## 4. Progressão
 - **8 atributos:** Finalização, Passe, Drible, Cabeceio, Velocidade, Físico, Visão, Frieza. O overall é ponderado pela posição (Atacante, Ponta, Meia).
@@ -50,7 +56,8 @@
 - **Relações:** família, técnico, torcida, amigo e diretoria.
 - **Sonhos (11):** primeiro contrato, carro, casa da mãe, Seleção, exterior, título, artilharia, 100 gols, Mundial, Bola de Cristal e reformar o campinho da Vila. Alguns são comprados com o dinheiro da carreira.
 - **Rival:** nasce na final do bairro, evolui em paralelo, aparece nas notícias e nos clássicos, e é comparado com você no legado.
-- **Álbum de memórias (16):** cada lance marcante vira uma figurinha. As bloqueadas mostram a dica do que fazer.
+- **Fãs:** contador de seguidores que cresce com boas atuações. Clubes maiores (tier, exterior, Seleção), finais e clássicos multiplicam o ganho; lances que viralizam (caneta, bicicleta, cobertura, cavadinha, voleio, carrinho...) e o esforço defensivo somam mais. Jogo ruim faz perder alguns. Trocar de clube traz a torcida nova, postar nas redes dá um pouco, os fãs aumentam o valor do patrocínio e os marcos (1 mil, 10 mil, 100 mil, 1 mi, 10 mi, 50 mi) dão moedas. Aparecem no hub, no relatório, na carreira e no legado.
+- **Álbum de memórias (19):** cada lance marcante vira uma figurinha. As bloqueadas mostram a dica do que fazer.
 
 ## 6. Retenção
 | Sistema | Gancho |
