@@ -301,11 +301,18 @@ func aplicar_efeitos(ef: Dictionary) -> Array:
 			"sonho":
 				concluir_sonho(v)
 				txt.append("Sonho realizado!")
+			"salario_pct":
+				var c: Dictionary = carreira["contrato"]
+				c["salario"] = snappedf(float(c.get("salario", 1000.0)) * (1.0 + float(v)), 50.0)
+				txt.append("Salário +%d%%" % int(float(v) * 100))
+			"contrato_mais":
+				carreira["contrato"]["ate"] = int(carreira["contrato"].get("ate", carreira["temporada"])) + int(v)
+				txt.append("Contrato +%d temporadas" % int(v))
 			_:
 				if k.begins_with("rel_"):
 					var r: String = k.substr(4)
 					_mudar("rel." + r, v)
-					txt.append(_fmt(v, {"familia": "Família", "tecnico": "Técnico", "torcida": "Torcida", "amigo": carreira["amigo"]}.get(r, r)))
+					txt.append(_fmt(v, {"familia": "Família", "tecnico": "Técnico", "torcida": "Torcida", "diretoria": "Diretoria", "amigo": carreira["amigo"]}.get(r, r)))
 				elif k.begins_with("xp_"):
 					var a: String = k.substr(3)
 					dar_xp({a: v})
@@ -381,7 +388,7 @@ func nova_carreira(d: Dictionary) -> void:
 			"potencial": clampf(rng.randf_range(80.0, 92.0) + float(herdado.get("potencial", 0.0)), 70.0, 99.0)},
 		"atributos": attrs,
 		"status": {"energia": 90.0, "moral": 65.0, "fama": float(herdado.get("fama", 0.0)), "lesao": 0},
-		"rel": {"familia": 70.0, "tecnico": 50.0, "torcida": 50.0, "amigo": 75.0},
+		"rel": {"familia": 70.0, "tecnico": 50.0, "torcida": 50.0, "amigo": 75.0, "diretoria": 50.0},
 		"dinheiro": float(herdado.get("dinheiro", 0.0)),
 		"fase": "prologo", "categoria": "Sub-15", "clube": "vila", "contrato": {},
 		"temporada": 0, "ano": 2026, "semana": 0, "temp": {},
@@ -653,6 +660,8 @@ func _condicao_evento(e: Dictionary) -> bool:
 		return false
 	if e.has("forma_max") and (carreira["ultimas_notas"].size() < 3 or forma() > float(e["forma_max"])):
 		return false
+	if e.has("forma_min") and (carreira["ultimas_notas"].size() < 3 or forma() < float(e["forma_min"])):
+		return false
 	if e.has("sem_gols") and int(carreira.get("sem_gols", 0)) < int(e["sem_gols"]):
 		return false
 	if e["id"] == "juninho_peneira" and carreira["flags"].has("amigo_no_clube"):
@@ -684,6 +693,8 @@ func resolver_evento(e: Dictionary, indice: int) -> Dictionary:
 func situacao_titular() -> String:
 	if int(carreira["status"]["lesao"]) > 0:
 		return "lesionado"
+	if carreira.get("contrato", {}).get("pedido_saida", "") == "forcado":
+		return "reserva"  # afastado do time titular depois de forçar a saída
 	var exigido := forca_time(carreira["clube"]) - 4.0
 	var nota := float(overall()) + (forma() - 6.5) * 4.0 + (float(carreira["rel"]["tecnico"]) - 50.0) / 8.0
 	nota += (float(carreira["status"]["energia"]) - 50.0) / 25.0
@@ -1330,6 +1341,17 @@ func _gerar_ofertas() -> Array:
 	var valor := ov + float(carreira["status"]["fama"]) / 12.0 + (media_temporada() - 6.5) * 2.0
 	if carreira["flags"].has("empresario"):
 		valor += 2.0
+	var saida: String = carreira.get("contrato", {}).get("pedido_saida", "")
+	if saida == "aceito":
+		valor += 2.0  # o clube ajuda a negociar
+	elif saida == "forcado":
+		valor -= 2.0  # fama de problemático
+	if na_base and saida != "":
+		# na base, pedir para sair abre portas em outras bases
+		for id in _clubes_por_valor(float(clube(atual)["forca"]) + 3.0, "br", 3):
+			if id != atual:
+				lista.append({"clube": id, "tipo": "base", "titulo": "Base do %s" % nome_clube(id),
+					"salario": float(carreira["contrato"]["salario"]) * 1.3, "papel": "Base"})
 	if na_base:
 		var nova_cat := categoria_por_idade(idade)
 		var f_pro := float(clube(atual)["forca"])
@@ -1347,7 +1369,8 @@ func _gerar_ofertas() -> Array:
 		else:
 			lista.append({"clube": atual, "tipo": "base", "titulo": "Seguir na base (%s)" % nova_cat, "salario": float(carreira["contrato"]["salario"]) * 1.25, "papel": "Base"})
 	else:
-		lista.append(_oferta(atual, "Renovar contrato", true))
+		if saida == "":
+			lista.append(_oferta(atual, "Renovar contrato", true))
 		var paises := ["br"]
 		if valor >= 74.0:
 			paises.append_array(["pt", "es", "en", "it", "de", "fr"])
@@ -1356,8 +1379,15 @@ func _gerar_ofertas() -> Array:
 		if idade >= 29:
 			paises.append("us")
 		var vistos := {}
+		if carreira["flags"].has("sondado"):
+			carreira["flags"].erase("sondado")
+			var gigantes := ["real_castilla", "kingsbridge", "ravenshire", "paris_lumiere", "fc_rheinstadt", "atl_metropolitano", "imperial"]
+			gigantes.erase(atual)
+			var g: String = gigantes[rng.randi() % gigantes.size()]
+			vistos[g] = true
+			lista.append(_oferta(g, "Proposta de gigante", true))
 		for pais in paises:
-			for id in _clubes_por_valor(valor, pais, 2):
+			for id in _clubes_por_valor(valor, pais, 3 if saida != "" else 2):
 				if id != atual and not vistos.has(id):
 					vistos[id] = true
 					lista.append(_oferta(id, "Proposta", true))
@@ -1369,8 +1399,18 @@ func _gerar_ofertas() -> Array:
 				lista.remove_at(i)
 				lista.insert(0, o)
 				break
-		while lista.size() > 4:
+		while lista.size() > (5 if saida != "" else 4):
 			lista.pop_back()
+		if lista.is_empty():
+			lista.append(_oferta(["tupa", "estrela_vale", "vila_operaria", "cerrado"][rng.randi() % 4], "Proposta", true))
+	if saida != "":
+		# quem pediu para sair não fica no clube
+		var filtrada: Array = []
+		for o in lista:
+			if o["clube"] != atual:
+				filtrada.append(o)
+		if not filtrada.is_empty():
+			lista = filtrada
 	return lista
 
 
@@ -1405,7 +1445,9 @@ func _oferta(id: String, titulo: String, pro: bool) -> Dictionary:
 func aceitar_oferta(o: Dictionary) -> void:
 	var antigo: String = carreira["clube"]
 	carreira["clube"] = o["clube"]
-	carreira["contrato"] = {"salario": float(o["salario"]), "papel": o["papel"], "ate": int(carreira["temporada"]) + 2}
+	carreira["contrato"] = {"salario": float(o["salario"]), "papel": o["papel"], "ate": int(carreira["temporada"]) + 3}
+	if antigo != o["clube"]:
+		carreira["rel"]["diretoria"] = 55.0
 	if o["tipo"] == "pro":
 		if carreira["fase"] == "base":
 			concluir_sonho("profissional")
@@ -1428,6 +1470,153 @@ func aceitar_oferta(o: Dictionary) -> void:
 		r["clube"] = ["kingsbridge", "real_castilla", "inter_lucenzo", "fc_rheinstadt", "paris_lumiere"][rng.randi() % 5]
 		carreira["noticias"].push_front("%s foi vendido para o %s." % [r["nome"], nome_clube(r["clube"])])
 	nova_temporada()
+
+
+# ================================================================ contrato: renegociar e pedir para sair
+
+func rel_diretoria() -> float:
+	return float(carreira["rel"].get("diretoria", 50.0))
+
+
+## Salário que o mercado pagaria a você neste clube (sem sorteio).
+func salario_mercado(id := "") -> float:
+	var c := clube(id if id != "" else carreira["clube"])
+	if carreira["fase"] == "base":
+		return 600.0 + float(c["tier"]) * 250.0 + maxf(float(overall()) - 50.0, 0.0) * 60.0
+	var tier_mult: float = [0.5, 0.5, 0.8, 1.0, 1.6, 2.5][clampi(int(c["tier"]), 0, 5)]
+	var pais_mult: float = Dados.PAISES.get(c["pais"], {"salario": 1.0})["salario"]
+	var fama := 1.0 + float(carreira["status"]["fama"]) / 250.0
+	return snappedf(maxf(2000.0 * pow(1.16, float(overall()) - 60.0) * tier_mult * pais_mult * fama, 1500.0), 100.0)
+
+
+func valor_mercado() -> float:
+	var idade := int(carreira["jogador"]["idade"])
+	var juventude := clampf(1.0 + (25.0 - idade) * 0.06, 0.4, 1.6)
+	return snappedf(salario_mercado() * 52.0 * 2.5 * juventude, 1000.0)
+
+
+## "" se pode negociar; senão, o motivo.
+func motivo_sem_negociacao() -> String:
+	var c: Dictionary = carreira.get("contrato", {})
+	if int(c.get("negociou", -1)) == int(carreira["temporada"]):
+		return "Você já negociou o salário nesta temporada."
+	if int(carreira["temp"].get("jogos", 0)) < 3:
+		return "A diretoria quer ver você jogar pelo menos 3 partidas nesta temporada."
+	if c.get("pedido_saida", "") != "":
+		return "Você pediu para sair: a diretoria não negocia salário agora."
+	return ""
+
+
+func chance_renegociar(pct: float) -> float:
+	var atual := float(carreira["contrato"].get("salario", 1000.0))
+	var justo := salario_mercado()
+	var ch := 0.5 + clampf(justo / maxf(atual, 1.0) - 1.0, -0.5, 1.0) * 0.9
+	ch += (forma() - 6.5) * 0.12
+	ch += (rel_diretoria() - 50.0) / 200.0 + (float(carreira["rel"]["tecnico"]) - 50.0) / 300.0
+	ch += float(carreira["status"]["fama"]) / 400.0
+	if carreira["flags"].has("empresario"):
+		ch += 0.08
+	if situacao_titular() == "titular":
+		ch += 0.05
+	ch -= pct * 1.3
+	return clampf(ch, 0.05, 0.92)
+
+
+## pct: 0.10, 0.25 ou 0.50. Retorna {resultado, novo, contraproposta, textos}.
+func renegociar(pct: float) -> Dictionary:
+	var c: Dictionary = carreira["contrato"]
+	c["negociou"] = int(carreira["temporada"])
+	var atual := float(c.get("salario", 1000.0))
+	var ch := chance_renegociar(pct)
+	var r := rng.randf()
+	var res := {"resultado": "", "atual": atual, "novo": atual, "contraproposta": 0.0, "efeitos": []}
+	if r < ch:
+		res["resultado"] = "aceito"
+		res["novo"] = snappedf(atual * (1.0 + pct), 50.0)
+		c["salario"] = res["novo"]
+		c["ate"] = int(c.get("ate", carreira["temporada"])) + 1
+		res["efeitos"] = aplicar_efeitos({"moral": 6, "rel_diretoria": -2})
+	elif r < ch + 0.28:
+		res["resultado"] = "contraproposta"
+		res["contraproposta"] = snappedf(atual * (1.0 + maxf(pct * 0.45, 0.05)), 50.0)
+	else:
+		res["resultado"] = "recusado"
+		res["efeitos"] = aplicar_efeitos({"moral": -4, "rel_diretoria": -(6.0 + pct * 20.0)})
+		if pct >= 0.5 and rng.randf() < 0.5:
+			res["vazou"] = true
+			res["efeitos"].append_array(aplicar_efeitos({"rel_torcida": -6, "fama": 2}))
+			carreira["noticias"].push_front("Vazou: %s pediu aumento de 50%% e a diretoria disse não." % carreira["jogador"]["apelido"])
+	salvar_carreira()
+	Analytics.evento("renegociacao", {"pct": pct, "resultado": res["resultado"]})
+	return res
+
+
+func responder_contraproposta(aceitar: bool, valor: float) -> Array:
+	var txt: Array = []
+	if aceitar:
+		carreira["contrato"]["salario"] = valor
+		carreira["contrato"]["ate"] = int(carreira["contrato"].get("ate", carreira["temporada"])) + 1
+		txt = aplicar_efeitos({"moral": 3})
+	else:
+		txt = aplicar_efeitos({"rel_diretoria": -4})
+	salvar_carreira()
+	return txt
+
+
+const MOTIVOS_SAIDA := {
+	"minutos": "Quero jogar mais",
+	"maior": "Quero um clube maior",
+	"exterior": "Quero jogar no exterior",
+	"tecnico": "Não me entendo com o técnico",
+}
+
+
+func chance_saida(motivo: String) -> float:
+	var f := forca_time(carreira["clube"])
+	var ov := float(overall())
+	var ch := 0.35 + (rel_diretoria() - 50.0) / 150.0
+	if situacao_titular() != "titular":
+		ch += 0.25  # reserva sai fácil
+	if ov >= f + 3.0:
+		ch -= 0.25  # peça-chave: o clube segura
+	if motivo == "tecnico" and float(carreira["rel"]["tecnico"]) < 35.0:
+		ch += 0.15
+	if motivo == "maior" and int(clube(carreira["clube"])["tier"]) >= 5:
+		ch -= 0.15
+	return clampf(ch, 0.1, 0.9)
+
+
+## Retorna {aceito: bool, efeitos}.
+func pedir_saida(motivo: String) -> Dictionary:
+	var c: Dictionary = carreira["contrato"]
+	var aceito := rng.randf() < chance_saida(motivo)
+	var ef: Array = []
+	if aceito:
+		c["pedido_saida"] = "aceito"
+		ef = aplicar_efeitos({"rel_diretoria": -5, "rel_torcida": -3})
+		carreira["noticias"].push_front("%s está de saída do %s no fim da temporada." % [carreira["jogador"]["apelido"], nome_clube(carreira["clube"])])
+	else:
+		ef = aplicar_efeitos({"rel_diretoria": -8, "moral": -5})
+	c["motivo_saida"] = motivo
+	salvar_carreira()
+	Analytics.evento("pedido_saida", {"motivo": motivo, "aceito": aceito})
+	return {"aceito": aceito, "efeitos": ef}
+
+
+func forcar_saida() -> Array:
+	carreira["contrato"]["pedido_saida"] = "forcado"
+	carreira["noticias"].push_front("Crise: %s força a saída e é afastado do time titular." % carreira["jogador"]["apelido"])
+	var ef := aplicar_efeitos({"rel_diretoria": -25, "rel_torcida": -15, "rel_tecnico": -15, "fama": 3})
+	salvar_carreira()
+	return ef
+
+
+func cancelar_saida() -> Array:
+	carreira["contrato"]["pedido_saida"] = ""
+	var ef := aplicar_efeitos({"rel_diretoria": 3, "rel_torcida": 2})
+	carreira["noticias"].push_front("%s desiste de sair e fica no %s." % [carreira["jogador"]["apelido"], nome_clube(carreira["clube"])])
+	salvar_carreira()
+	return ef
 
 
 func pode_aposentar() -> bool:

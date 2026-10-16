@@ -337,4 +337,19 @@ const EVENTOS := [
 		"opcoes": [
 			{"texto": "Prometer reformar (sonho)", "efeitos": {"flag": "promessa_campinho", "moral": 5}, "resultado": "O sonho entrou na sua lista. Custa R$ 3 milhões (aba Vida)."},
 			{"texto": "Doar uniformes por enquanto", "efeitos": {"dinheiro": -5000, "rel_torcida": 4, "fama": 2}, "resultado": "Os moleques mandaram vídeo agradecendo."}]},
+	{"id": "renovacao_antecipada", "fase": "pro", "peso": 3, "personagem": "diretoria", "forma_min": 7.2, "sem_flag": "renovou_antes",
+		"titulo": "A diretoria quer renovar", "texto": "O presidente do {clube} te chama na sala dele: \"Você é o futuro deste clube. Vamos renovar agora, com aumento de 20%?\"",
+		"opcoes": [
+			{"texto": "Assinar a renovação", "efeitos": {"salario_pct": 0.2, "contrato_mais": 2, "rel_diretoria": 12, "rel_torcida": 5, "flag": "renovou_antes"}, "resultado": "Caneta na mão, foto oficial. A torcida comemorou nas redes."},
+			{"texto": "Pedir para esperar o fim da temporada", "efeitos": {"rel_diretoria": -3, "flag": "renovou_antes"}, "resultado": "\"Você que sabe. A porta está aberta... por enquanto.\""}]},
+	{"id": "sondagem", "fase": "pro", "peso": 3, "personagem": "empresario", "fama_min": 25, "forma_min": 6.9,
+		"titulo": "Sondagem de um gigante", "texto": "{empresario} cochicha: \"Um clube enorme perguntou de você. Se você der um sinal, a proposta chega na janela.\"",
+		"opcoes": [
+			{"texto": "Dar o sinal", "efeitos": {"flag": "sondado", "rel_diretoria": -4, "moral": 5}, "resultado": "A proposta deve aparecer no fim da temporada. A diretoria já desconfia."},
+			{"texto": "Focar no clube atual", "efeitos": {"rel_diretoria": 6, "rel_torcida": 3}, "resultado": "Lealdade também constrói carreira."}]},
+	{"id": "presidente_cobra", "fase": "any", "peso": 3, "personagem": "diretoria", "forma_max": 5.9,
+		"titulo": "Cobrança da diretoria", "texto": "O diretor de futebol aparece no treino: \"O investimento em você precisa dar retorno. Quero ver reação.\"",
+		"opcoes": [
+			{"texto": "Prometer reação", "efeitos": {"moral": -2, "xp_frieza": 1.5, "rel_diretoria": 2}, "resultado": "Pressão é combustível. Agora é cumprir."},
+			{"texto": "Responder que o problema é o esquema tático", "efeitos": {"rel_diretoria": -6, "rel_tecnico": -8, "fama": 2}, "resultado": "O técnico ficou sabendo. O clima esquentou."}]},
 ]

@@ -7,7 +7,7 @@ const PERSONAGENS := {
 	"empresario": ["aperto", Color("ffc928"), "Empresário"], "imprensa": ["jornal", Color("b0bec5"), "Imprensa"],
 	"medico": ["cura", Color("2ed47a"), "Departamento médico"], "tecnico": ["esporte", Color("ff9a3c"), "Técnico"],
 	"patrocinador": ["dinheiro", Color("2ed47a"), "Patrocinador"], "torcida": ["festa", Color("a77bff"), "Torcida"],
-	"rival": ["fogo", Color("ff5468"), "Rival"],
+	"rival": ["fogo", Color("ff5468"), "Rival"], "diretoria": ["escudo", Color("43a8ff"), "Diretoria"],
 }
 
 var selecionadas: Array = []
@@ -107,6 +107,8 @@ func _cartao_jogo() -> PanelContainer:
 	var textos := {"titular": ["Você deve começar jogando", "ok", UI.VERDE], "reserva": ["Você deve começar no banco", "info", UI.OURO],
 		"fora": ["Fora da lista: melhore a forma e a relação com o técnico", "bloqueio", UI.VERMELHO],
 		"lesionado": ["Lesionado: %d semana(s)" % int(Jogo.carreira["status"]["lesao"]), "cura", UI.VERMELHO]}
+	if Jogo.carreira.get("contrato", {}).get("pedido_saida", "") == "forcado" and sit == "reserva":
+		textos["reserva"] = ["Afastado do time titular (você forçou a saída)", "bloqueio", UI.VERMELHO]
 	var t: Array = textos[sit]
 	col.add_child(UI.chip(t[1], t[0], t[2], Color(t[2], 0.12)))
 	return card

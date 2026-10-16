@@ -163,6 +163,8 @@ func _testar_carreira_completa(indice: int) -> void:
 				if not validas.is_empty():
 					var res := Jogo.resolver_evento(e, validas[rng.randi() % validas.size()])
 					checar(res["texto"].find("{") < 0, "texto do evento sem placeholder: %s" % e["id"])
+			if semanas == 4:
+				_testar_contrato()
 			var jogo := Jogo.proximo_jogo()
 			var titular := Jogo.situacao_titular()
 			if titular in ["fora", "lesionado"]:
@@ -185,7 +187,12 @@ func _testar_carreira_completa(indice: int) -> void:
 			var l := Jogo.aposentar()
 			checar(l["pontos"] >= 0, "legado calculado")
 			break
+		var saindo: bool = Jogo.carreira["contrato"].get("pedido_saida", "") != ""
+		var clube_antes: String = Jogo.carreira["clube"]
 		var ofs := Jogo.ofertas_temporada()
+		if saindo:
+			for o in ofs:
+				checar(o["clube"] != clube_antes, "quem pediu para sair não recebe renovação")
 		checar(ofs.size() >= 1, "há ofertas na temporada %d (idade %d)" % [temporadas, Jogo.carreira["jogador"]["idade"]])
 		var o: Dictionary = ofs[rng.randi() % ofs.size()]
 		Jogo.aceitar_oferta(o)
@@ -194,6 +201,7 @@ func _testar_carreira_completa(indice: int) -> void:
 			print("   DEBUG calendário curto: clube=%s pais=%s n=%d" % [Jogo.carreira["clube"], Jogo.clube(Jogo.carreira["clube"])["pais"], Jogo.carreira["temp"]["calendario"].size()])
 		checar(Jogo.carreira["temp"]["calendario"].size() >= 7, "calendário montado")
 	var c := Jogo.carreira
+	print("   contrato: ", contagem_contrato)
 	print("   idade final %d | overall máx %d | jogos %d | gols %d | títulos %d | sonhos %d | memórias %d | países %s | moedas %d" % [
 		c["jogador"]["idade"], maior_overall, c["estat"]["jogos"], c["estat"]["gols"], c["estat"]["titulos"],
 		c["sonhos"].size(), c["memorias"].size(), paises.keys(), Jogo.moedas()])
@@ -204,6 +212,36 @@ func _testar_carreira_completa(indice: int) -> void:
 	checar(h["geracao"] == 2, "herança para a 2ª geração")
 	Jogo.nova_carreira({"nome": "Filho", "apelido": "Jr", "posicao": pos, "herdado": h, "geracao": h["geracao"]})
 	checar(Jogo.carreira["geracao"] == 2, "nova geração criada")
+
+
+var contagem_contrato := {}
+
+
+func _testar_contrato() -> void:
+	var antes := float(Jogo.carreira["contrato"].get("salario", 0.0))
+	var x := rng.randf()
+	if x < 0.45 and Jogo.motivo_sem_negociacao() == "":
+		var pct: float = [0.1, 0.25, 0.5][rng.randi() % 3]
+		var ch := Jogo.chance_renegociar(pct)
+		checar(ch >= 0.05 and ch <= 0.92, "chance de renegociar no intervalo")
+		var r := Jogo.renegociar(pct)
+		contagem_contrato[r["resultado"]] = int(contagem_contrato.get(r["resultado"], 0)) + 1
+		if r["resultado"] == "contraproposta":
+			Jogo.responder_contraproposta(rng.randf() < 0.6, r["contraproposta"])
+		checar(float(Jogo.carreira["contrato"]["salario"]) >= antes, "salário não diminui ao negociar")
+		checar(Jogo.motivo_sem_negociacao() != "", "só uma negociação por temporada")
+	elif x < 0.6 and Jogo.carreira["contrato"].get("pedido_saida", "") == "":
+		var motivos := Jogo.MOTIVOS_SAIDA.keys()
+		var r := Jogo.pedir_saida(motivos[rng.randi() % motivos.size()])
+		contagem_contrato["saida_aceita" if r["aceito"] else "saida_recusada"] = int(contagem_contrato.get("saida_aceita" if r["aceito"] else "saida_recusada", 0)) + 1
+		if not r["aceito"] and rng.randf() < 0.4:
+			Jogo.forcar_saida()
+			contagem_contrato["forcada"] = int(contagem_contrato.get("forcada", 0)) + 1
+			checar(Jogo.situacao_titular() in ["reserva", "lesionado"], "afastado após forçar saída")
+		elif r["aceito"] and rng.randf() < 0.2:
+			Jogo.cancelar_saida()
+			checar(Jogo.carreira["contrato"]["pedido_saida"] == "", "cancelar saída")
+	checar(Jogo.valor_mercado() > 0, "valor de mercado positivo")
 
 
 func _checar_invariantes() -> void:
