@@ -812,6 +812,13 @@ func contexto_lance(partida: Dictionary, momento: Dictionary, gols_nos: int, gol
 	if absf(c1.r - c2.r) + absf(c1.g - c2.g) + absf(c1.b - c2.b) < 0.45:
 		# uniformes parecidos: o visitante usa o segundo uniforme
 		ctx["cor_fora"] = Color("f2f2f2") if c1.get_luminance() < 0.6 else Color("222a3a")
+	else:
+		var uf := Dados.uniforme(partida["adv"])
+		ctx["estilo_fora"] = uf[0]
+		ctx["cor2_fora"] = uf[1]
+	var uc := Dados.uniforme(partida["nos"])
+	ctx["estilo_casa"] = uc[0]
+	ctx["cor2_casa"] = uc[1]
 	ctx["rng"].seed = ctx["semente"]
 	ctx["titulo_intro"] = "%d' • %s" % [minuto, partida.get("competicao", "")]
 	if "--auto" in OS.get_cmdline_user_args():
@@ -1709,7 +1716,7 @@ func contexto_desafio() -> Dictionary:
 		lista_com.append(c)
 	var ctx := {"atributos": attrs, "moral": 65.0, "pressao": 0.6, "minuto": 90, "parceiro": "Juninho",
 		"cenario": ["estadio", "base", "varzea", "selecao"][r.randi() % 4], "noite": r.randf() < 0.5,
-		"cor_casa": Color("ffc928"), "calcao_casa": Color("1d3fa8"), "cor_fora": Color("c62828"), "calcao_fora": Color.WHITE,
+		"cor_casa": Color("ffc928"), "calcao_casa": Color("1d3fa8"), "cor_fora": Color("c62828"), "calcao_fora": Color.WHITE, "estilo_fora": "listras", "cor2_fora": Color("f2f2f2"),
 		"sigla_casa": "VOC", "sigla_fora": "DES", "gols_casa": 0, "gols_fora": 0,
 		"visual": visual_jogador() if tem_carreira() else {"pele": 2, "cabelo": 1, "cor_cabelo": 0, "chuteira": Color("111111")},
 		"numero": 10, "comemoracoes": lista_com, "segunda_chance": "", "semente": semente, "semente_cenario": semente % 97,

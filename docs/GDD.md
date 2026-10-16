@@ -1,4 +1,4 @@
-# Minha História de Jogador: Documento de Design (v1.0)
+# Minha História de Jogador: Documento de Design (v1.1)
 
 > Simulação de carreira de futebol com **decisões em primeira pessoa**. Godot 4.5, 3D low-poly, Android, retrato, sessões curtas.
 
@@ -40,10 +40,14 @@
 - **Envelhecimento:** depois dos 30, Velocidade e Físico caem mais rápido; Visão, Frieza e Passe aguentam melhor.
 - **Escalação:** depende de overall, forma (média recente), relação com o técnico e energia, comparados com a força do clube. Pode dar titular, reserva (entra no 2º tempo) ou fora da lista.
 - **Lesões:** o risco sobe com energia baixa. Há tratamento por anúncio ou moedas.
+- **Contrato (aba Contrato da Carreira):** salário, validade, valor de mercado e salário de mercado, mais a relação com a **Diretoria**.
+  - **Renegociar salário:** pedir +10%, +25% ou +50%. A chance depende de quanto o pedido passa do mercado, da relação com a diretoria, da forma e da fama. O empresário dá um palpite antes ("tá tranquilo", "vai ser duro"). Resultado: aceito, contraproposta (aceitar ou recusar) ou recusado. Pedido exagerado irrita a diretoria e pode vazar na imprensa. Uma tentativa por temporada.
+  - **Pedir para sair:** quatro motivos (falta de minutos, clube maior, jogar no exterior, problema com o técnico). Se a diretoria libera, as propostas do fim de temporada aumentam e excluem o próprio clube. Se recusa, dá para **forçar a saída**: você é afastado do time titular, a torcida e a diretoria ficam contra, e o mercado desconfia (propostas menores). Dá para voltar atrás.
+  - Eventos ligados: renovação antecipada, sondagem de clube grande e cobrança do presidente.
 
 ## 5. Vida fora de campo
-- **30 eventos narrativos** com condições (idade, fama, flags, dinheiro, forma) e escolhas com risco. Exemplos: o amigo reprovado na peneira, o empresário Marcão, a festa na véspera, a promessa da casa para a mãe, o vídeo antigo vazado, a proposta suspeita de aposta.
-- **Relações:** família, técnico, torcida e amigo.
+- **33 eventos narrativos** com condições (idade, fama, flags, dinheiro, forma) e escolhas com risco. Exemplos: o amigo reprovado na peneira, o empresário Marcão, a festa na véspera, a promessa da casa para a mãe, o vídeo antigo vazado, a proposta suspeita de aposta.
+- **Relações:** família, técnico, torcida, amigo e diretoria.
 - **Sonhos (11):** primeiro contrato, carro, casa da mãe, Seleção, exterior, título, artilharia, 100 gols, Mundial, Bola de Cristal e reformar o campinho da Vila. Alguns são comprados com o dinheiro da carreira.
 - **Rival:** nasce na final do bairro, evolui em paralelo, aparece nas notícias e nos clássicos, e é comparado com você no legado.
 - **Álbum de memórias (16):** cada lance marcante vira uma figurinha. As bloqueadas mostram a dica do que fazer.
@@ -77,6 +81,7 @@
 ## 8. Tecnologia
 - **Godot 4.5.1**, renderer Mobile, retrato 720×1280 com área segura (notch).
 - **Tudo procedural:** cenários, jogadores, ícones de UI (Material Icons), **áudio sintetizado** (torcida, apito, coração, samba com cavaquinho em Karplus-Strong).
+- **Gráficos (v1.1):** shaders próprios para gramado (listras de corte, linhas por SDF, desgaste perto do gol, campo de terra na várzea), céu com sol, nuvens e estrelas, torcida em silhueta animada (pula no gol, bandeiras, lanternas de celular à noite), rede em losango que balança no gol, bola com gomos e bandeirinhas tremulando. Jogadores com corpo torneado (cabeça com olhos, sobrancelhas, nariz, 6 cabelos), articulações de joelho e cotovelo, camisas com padrão de clube (lisa, listras, faixa, metade) e sombra de contato. Efeitos de lance: rastro da bola, grama ou poeira levantando no chute e câmera lenta no gol. Iluminação ACES, brilho (glow), névoa e luzes de estádio com refletores. Tudo agrupado em MultiMesh para rodar em celular.
 - **Serviços com adaptadores:** AdMob (Poing), Google Play Billing (oficial) e Firebase (plugin próprio em `android_plugins/firebase`). Sem os plugins, rodam em modo simulado.
 - **Testes:** `godot --headless --path jogo res://testes/testes.tscn` (compilação, situações, 6 carreiras completas, salvamento, compras, 30 lances 3D e telas).
 

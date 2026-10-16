@@ -12,13 +12,14 @@
 - **Momentos decisivos em 1ª pessoa:** 6 situações procedurais. **Olhar ao redor revela jogadas escondidas** (caneta, cobertura, lançamento, a leitura do goleiro no pênalti), com coração acelerado, visão em túnel e instinto.
 - **"E se...?":** errou o lance? Reviva-o sabendo o que vai acontecer.
 - **Comemorações** com efeito na carreira e **chuteiras** que você vê nos próprios pés.
+- **Contrato de verdade:** renegocie o salário (com palpite do empresário e contraproposta) ou peça para sair do clube, e até force a saída se a diretoria não liberar.
 - **Carreira completa:** Sub-15, Sub-17, Sub-20, profissional, 9 países fictícios, Seleção (Mundial), Bola de Cristal e aposentadoria.
-- **Vida fora de campo:** 30 eventos narrativos, relações, empresário, imprensa, rival e sonhos (a casa da mãe, reformar o campinho).
+- **Vida fora de campo:** 33 eventos narrativos, relações (incluindo a diretoria), empresário, imprensa, rival e sonhos (a casa da mãe, reformar o campinho).
 - **Retenção:** objetivos de temporada, álbum de memórias, Lance do Dia com sequência, Hall da Fama e **Nova Geração** (jogue com o filho da sua lenda).
 - **Monetização ética:** anúncios recompensados opcionais e diegéticos, intersticial com limites rígidos, VIP, remover anúncios, pacote inicial e moedas para cosméticos. Dinheiro não compra nota em campo.
 
 ## Tecnologia
-Godot 4.5.1 • 3D low-poly 100% procedural • áudio sintetizado • retrato • AdMob, Google Play Billing e Firebase com adaptadores e modo simulado • bateria de testes automatizados (mais de 22 mil verificações).
+Godot 4.5.1 • 3D 100% procedural com shaders próprios (gramado, céu, torcida animada, rede, bola) • áudio sintetizado • retrato • AdMob, Google Play Billing e Firebase com adaptadores e modo simulado • bateria de testes automatizados (mais de 22 mil verificações).
 
 ## Documentação
 - [Documento de Design (GDD)](docs/GDD.md)

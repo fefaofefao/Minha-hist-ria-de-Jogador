@@ -47,6 +47,11 @@ var balanco := 0.0
 var _t_balanco := 0.0
 
 var bola_no_pe := true
+# rastro da bola em chutes fortes
+var _rastro_im: ImmediateMesh
+var _rastro_pts: Array[Vector3] = []
+var _bola_antes := Vector3.ZERO
+var _camera_lenta := false
 var tempo_total := 7.0
 var tempo_restante := 7.0
 var leitura := {}  # poi id -> segundos olhando
@@ -94,6 +99,11 @@ void fragment() {
 
 # ================================================================ montagem
 
+func _exit_tree() -> void:
+	if _camera_lenta:
+		Engine.time_scale = 1.0
+
+
 func iniciar(situacao: Dictionary) -> void:
 	s = situacao
 	ctx = s["ctx"]
@@ -123,14 +133,14 @@ func _montar_mundo() -> void:
 		var papel: String = j["papel"]
 		var visual := {"pele": rng.randi_range(0, 5), "cabelo": rng.randi_range(0, 5), "cor_cabelo": rng.randi_range(0, 3)}
 		if papel == "prota":
-			a.configurar(cor_casa, calcao_casa, ctx.get("visual", {}), int(ctx.get("numero", 10)))
+			a.configurar(cor_casa, calcao_casa, ctx.get("visual", {}), int(ctx.get("numero", 10)), Color.WHITE, ctx.get("estilo_casa", "liso"), ctx.get("cor2_casa", Color.WHITE))
 		elif papel == "goleiro":
 			a.configurar(Color("2bb673") if cor_fora.g < 0.5 else Color("7a3fd1"), Color("111111"), visual, 1, Color("111111"))
 		elif j["time"] == "casa":
-			a.configurar(cor_casa, calcao_casa, visual, numeros[n % numeros.size()])
+			a.configurar(cor_casa, calcao_casa, visual, numeros[n % numeros.size()], Color.WHITE, ctx.get("estilo_casa", "liso"), ctx.get("cor2_casa", Color.WHITE))
 			n += 1
 		else:
-			a.configurar(cor_fora, calcao_fora, visual, numeros[(n + 3) % numeros.size()], cor_fora.darkened(0.3))
+			a.configurar(cor_fora, calcao_fora, visual, numeros[(n + 3) % numeros.size()], cor_fora.darkened(0.3), ctx.get("estilo_fora", "liso"), ctx.get("cor2_fora", Color.WHITE))
 			n += 1
 		a.position = j["pos"]
 		a.set_meta("nome", j.get("nome", ""))
@@ -158,21 +168,32 @@ func _montar_mundo() -> void:
 		atores["goleiro"].fazer_pose("goleiro")
 	if atores.has("parceiro") and s["tipo"] in ["chance_area", "contra_ataque"]:
 		_encarar(atores["parceiro"], gol)
-	prota.mostrar_corpo_superior = false
-
 	var esfera := SphereMesh.new()
 	esfera.radius = 0.11
 	esfera.height = 0.22
-	esfera.radial_segments = 14
-	esfera.rings = 7
+	esfera.radial_segments = 24
+	esfera.rings = 12
 	bola = MeshInstance3D.new()
 	bola.mesh = esfera
-	var mb := StandardMaterial3D.new()
-	mb.albedo_texture = _textura_bola()
-	mb.roughness = 0.5
+	var mb := ShaderMaterial.new()
+	mb.shader = Formas.shader("res://shaders/bola.gdshader")
 	bola.material_override = mb
 	add_child(bola)
 	_posicionar_bola_inicial()
+	_bola_antes = bola.position
+	_rastro_im = ImmediateMesh.new()
+	var rastro := MeshInstance3D.new()
+	rastro.mesh = _rastro_im
+	rastro.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mr := StandardMaterial3D.new()
+	mr.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mr.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mr.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mr.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mr.vertex_color_use_as_albedo = true
+	mr.no_depth_test = false
+	rastro.material_override = mr
+	add_child(rastro)
 
 	cam_pov = Camera3D.new()
 	cam_pov.fov = 74.0
@@ -190,17 +211,103 @@ func _montar_mundo() -> void:
 	_snapshot = _capturar()
 
 
-func _textura_bola() -> ImageTexture:
-	var img := Image.create(64, 32, false, Image.FORMAT_RGB8)
-	img.fill(Color("f5f5f5"))
-	for k in 6:
-		var cx := 6 + k * 11
-		var cy := 8 if k % 2 == 0 else 22
-		for y in range(-4, 5):
-			for x in range(-4, 5):
-				if x * x + y * y <= 16:
-					img.set_pixel(clampi(cx + x, 0, 63), clampi(cy + y, 0, 31), Color("1d1d1d"))
-	return ImageTexture.create_from_image(img)
+## Rastro luminoso atrás da bola quando ela viaja rápido (chutes, cruzamentos).
+func _atualizar_rastro(delta: float) -> void:
+	var p := bola.position
+	var vel := p.distance_to(_bola_antes) / maxf(delta, 0.0001)
+	_bola_antes = p
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var olho := cam.global_position
+	# só em bola rápida e longe da câmera (perto dela o rastro vira um borrão na tela)
+	if not bola_no_pe and vel > 12.0 and p.distance_to(olho) > 3.0:
+		_rastro_pts.append(p)
+		if _rastro_pts.size() > 12:
+			_rastro_pts.pop_front()
+	elif not _rastro_pts.is_empty():
+		_rastro_pts.pop_front()
+	_rastro_im.clear_surfaces()
+	if _rastro_pts.size() < 2:
+		return
+	_rastro_im.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	var n := _rastro_pts.size()
+	for i in n:
+		var a := _rastro_pts[i]
+		var b := _rastro_pts[mini(i + 1, n - 1)] if i < n - 1 else a + (a - _rastro_pts[i - 1])
+		var tang := (b - a).normalized()
+		var lado := tang.cross((olho - a).normalized())
+		# bola vindo na direção da câmera: a fita fica de lado e some
+		var visivel := clampf(lado.length() * 2.5 - 0.5, 0.0, 1.0)
+		lado = lado.normalized() if lado.length() > 0.001 else Vector3.UP
+		var t := float(i) / float(n - 1)
+		var largura := 0.09 * t
+		var cor := Color(1.0, 0.97, 0.9, 0.35 * t * t * visivel)
+		_rastro_im.surface_set_color(cor)
+		_rastro_im.surface_add_vertex(a + lado * largura)
+		_rastro_im.surface_set_color(cor)
+		_rastro_im.surface_add_vertex(a - lado * largura)
+	_rastro_im.surface_end()
+
+
+## Tufos de grama (ou terra, na várzea) saltando no momento do chute.
+func _poeira_chute(ponto: Vector3, forca := 1.0) -> void:
+	var p := CPUParticles3D.new()
+	var cubo := BoxMesh.new()
+	cubo.size = Vector3(0.035, 0.012, 0.035)
+	var terra: bool = ctx.get("cenario", "estadio") == "varzea"
+	cubo.material = Formas.mat(Color("7a4a2a") if terra else Color("2f6b25"), 0.95, 0.0)
+	p.mesh = cubo
+	p.amount = int(14 * forca) + 4
+	p.one_shot = true
+	p.explosiveness = 0.92
+	p.lifetime = 0.9
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 55.0
+	p.initial_velocity_min = 1.4 * forca
+	p.initial_velocity_max = 3.4 * forca
+	p.angular_velocity_min = -720.0
+	p.angular_velocity_max = 720.0
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.4
+	p.gravity = Vector3(0, -9.8, 0)
+	p.position = Vector3(ponto.x, 0.03, ponto.z)
+	add_child(p)
+	p.emitting = true
+	if terra:
+		# nuvem de poeira subindo do chão de terra
+		var nuvem := CPUParticles3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(0.5, 0.5)
+		var mq := StandardMaterial3D.new()
+		mq.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mq.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mq.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		mq.vertex_color_use_as_albedo = true
+		q.material = mq
+		nuvem.mesh = q
+		nuvem.amount = 8
+		nuvem.one_shot = true
+		nuvem.explosiveness = 0.85
+		nuvem.lifetime = 1.4
+		nuvem.direction = Vector3(0, 1, 0)
+		nuvem.spread = 70.0
+		nuvem.initial_velocity_min = 0.3
+		nuvem.initial_velocity_max = 0.9
+		nuvem.gravity = Vector3(0, 0.15, 0)
+		nuvem.damping_min = 0.6
+		nuvem.damping_max = 1.2
+		nuvem.scale_amount_min = 0.6
+		nuvem.scale_amount_max = 1.6
+		var grad := Gradient.new()
+		grad.set_color(0, Color(0.72, 0.5, 0.33, 0.45))
+		grad.set_color(1, Color(0.72, 0.5, 0.33, 0.0))
+		nuvem.color_ramp = grad
+		nuvem.position = p.position + Vector3(0, 0.1, 0)
+		add_child(nuvem)
+		nuvem.emitting = true
+		get_tree().create_timer(2.0).timeout.connect(nuvem.queue_free)
+	get_tree().create_timer(1.6).timeout.connect(p.queue_free)
 
 
 func _posicionar_bola_inicial() -> void:
@@ -446,6 +553,7 @@ func _intro() -> void:
 	tw.tween_property(cam_tv, "global_transform", olhos, 0.9).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	await tw.finished
 	base_pov = Basis.from_euler(Vector3(pitch, yaw, 0))
+	prota.mostrar_corpo_superior = false  # em primeira pessoa: só pernas e chuteiras
 	cam_pov.make_current()
 
 
@@ -561,6 +669,7 @@ func _process(delta: float) -> void:
 		return
 	if bola_no_pe:
 		bola.position = _pe_do(prota)
+	_atualizar_rastro(delta)
 	if seguir_bola:
 		alvo_olhar = bola.position
 	elif seguir_no != null:
@@ -997,6 +1106,13 @@ func _finalizar_bola(atirador: Jogador3D, tipo: String, d: String, lado: float, 
 			vel = 22.0
 			arco = 0.05
 	var dur := clampf(dist / vel, 0.35, 2.4)
+	_poeira_chute(origem, 1.3 if tipo == "forte" else 1.0)
+	# câmera lenta nos últimos metros de um gol (fora do replay)
+	if d == "gol" and fase == Fase.EXECUTANDO and not auto:
+		get_tree().create_timer(dur * 0.55, true, false, true).timeout.connect(func() -> void:
+			if fase == Fase.EXECUTANDO:
+				_camera_lenta = true
+				Engine.time_scale = 0.4)
 	var g: Jogador3D = atores.get("goleiro")
 	var alvo := Vector3.ZERO
 	var y_alto := 1.95 if alto else 0.35
@@ -1030,9 +1146,13 @@ func _finalizar_bola(atirador: Jogador3D, tipo: String, d: String, lado: float, 
 			if g and tipo != "penalti":
 				_mergulho(g, Vector3(lado * 1.3, 0.3, g.position.z), dur * 0.5, dur * 0.6)
 	await _bola_para(alvo, arco, dur, curva)
+	if _camera_lenta:
+		_camera_lenta = false
+		Engine.time_scale = float(ctx.get("escala_tempo", 1.0))
 	match d:
 		"gol":
 			Audio.tocar("rede", 0.9)
+			mundo.impacto_rede(alvo)
 			await _bola_para(Vector3(alvo.x * 1.02, 0.15, -41.8), 0.1, 0.32)
 		"defesa":
 			Tela.vibrar(60)
@@ -1177,6 +1297,7 @@ func _rebobinar() -> void:
 	_flash(0.85, Color("a0c4ff"))
 	await _espera(0.35)
 	_restaurar(_snapshot)
+	prota.mostrar_corpo_superior = false
 	camera_livre = true
 	yaw = yaw_base
 	pitch = -0.06

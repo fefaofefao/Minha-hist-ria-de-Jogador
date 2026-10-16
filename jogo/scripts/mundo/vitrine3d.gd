@@ -17,20 +17,25 @@ var _t := 0.0
 var embaixadinha := true
 
 
-func construir(cenario: String, noite: bool, visual: Dictionary, camisa: Color, calcao: Color, numero := 10) -> Vitrine3D:
+func construir(cenario: String, noite: bool, visual: Dictionary, camisa: Color, calcao: Color, numero := 10,
+		estilo := "liso", cor2 := Color(0, 0, 0, 0)) -> Vitrine3D:
 	mundo = Mundo3D.new()
 	add_child(mundo)
 	mundo.construir(cenario, noite, camisa, Color("c62828"), 11)
 	jogador = Jogador3D.new()
 	add_child(jogador)
-	jogador.configurar(camisa, calcao, visual, numero)
+	jogador.configurar(camisa, calcao, visual, numero, Color.WHITE, estilo, cor2)
 	jogador.position = Vector3(foco.x, 0, foco.z)
 	var esfera := SphereMesh.new()
 	esfera.radius = 0.11
 	esfera.height = 0.22
+	esfera.radial_segments = 24
+	esfera.rings = 12
 	bola = MeshInstance3D.new()
 	bola.mesh = esfera
-	bola.material_override = Jogador3D.mat(Color("f5f5f5"))
+	var mb := ShaderMaterial.new()
+	mb.shader = Formas.shader("res://shaders/bola.gdshader")
+	bola.material_override = mb
 	add_child(bola)
 	camera = Camera3D.new()
 	camera.fov = 52.0

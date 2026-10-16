@@ -77,7 +77,8 @@ func _montar_3d() -> void:
 			if i == 0:
 				j.configurar(Color("2bb673") if casa else Color("7a3fd1"), Color.BLACK, visual, 1)
 			else:
-				j.configurar(nos["cor"] if casa else cor_fora, nos["calcao"] if casa else adv["calcao"], visual, i + 1)
+				var uni := Dados.uniforme(p["nos"] if casa else p["adv"])
+				j.configurar(nos["cor"] if casa else cor_fora, nos["calcao"] if casa else adv["calcao"], visual, i + 1, Color.WHITE, uni[0], uni[1])
 			var base := Vector3(forma[i].x, 0, 12.5 + (forma[i].y + 10) * (1 if casa else -1) * 0.9)
 			if not casa:
 				base.z = 12.5 - (forma[i].y + 10) * 0.9 - 12

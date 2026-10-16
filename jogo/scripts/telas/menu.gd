@@ -13,7 +13,8 @@ func _ready() -> void:
 	var calcao: Color = Jogo.clube(Jogo.carreira["clube"])["calcao"] if tem else Color("1d3fa8")
 	vitrine = Vitrine3D.new()
 	add_child(vitrine)
-	vitrine.construir("estadio", true, visual, camisa, calcao, int(Jogo.carreira.get("jogador", {}).get("numero", 10)))
+	var uni := Dados.uniforme(Jogo.carreira["clube"]) if tem else ["liso", Color.WHITE]
+	vitrine.construir("estadio", true, visual, camisa, calcao, int(Jogo.carreira.get("jogador", {}).get("numero", 10)), uni[0], uni[1])
 	vitrine.foco = Vector3(0, 1.0, -26)
 	vitrine.raio = 7.5
 	vitrine.altura = 1.7

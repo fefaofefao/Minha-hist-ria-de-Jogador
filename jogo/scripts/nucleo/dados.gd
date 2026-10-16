@@ -71,6 +71,32 @@ const CLUBES := {
 	"lone_star": {"nome": "Lone Star SC", "sigla": "LSS", "pais": "us", "tier": 2, "forca": 69, "cor": Color("c62828"), "calcao": Color("0d47a1")},
 }
 
+## Padrão da camisa de cada clube: [estilo, cor secundária]. Clubes ausentes usam camisa lisa.
+const UNIFORMES := {
+	"atl_metropolitano": ["listras", Color("111111")],
+	"litoral": ["faixa", Color("111111")],
+	"porto_sul": ["listras", Color("5ab0ff")],
+	"leoes_agreste": ["metade", Color("f2f2f2")],
+	"operario_leste": ["listras", Color("f2f2f2")],
+	"cerrado": ["faixa", Color("ffd600")],
+	"ferroviario": ["faixa", Color("f2f2f2")],
+	"vila_operaria": ["listras", Color("f2f2f2")],
+	"sporting_atlantico": ["faixa", Color("f2f2f2")],
+	"sc_douro": ["metade", Color("1a1a1a")],
+	"atletico_mediterraneo": ["listras", Color("f2f2f2")],
+	"inter_lucenzo": ["listras", Color("111111")],
+	"ac_varenna": ["listras", Color("111111")],
+	"sv_nordhafen": ["listras", Color("111111")],
+	"paris_lumiere": ["faixa", Color("d32f2f")],
+	"al_sahel": ["faixa", Color("0d47a1")],
+	"lone_star": ["metade", Color("f2f2f2")],
+	"jardim": ["listras", Color("f2f2f2")],
+}
+
+
+static func uniforme(id: String) -> Array:
+	return UNIFORMES.get(id, ["liso", Color.WHITE])
+
 const PAISES := {
 	"br": {"nome": "Brasil", "liga": "Campeonato Nacional", "salario": 1.0},
 	"pt": {"nome": "Portugal", "liga": "Liga Lusitana", "salario": 1.4},
