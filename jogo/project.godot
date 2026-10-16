@@ -11,20 +11,45 @@ config_version=5
 [application]
 
 config/name="Minha História de Jogador"
-config/description="Protótipo do momento decisivo: escolha e veja em primeira pessoa."
-config/version="0.1.0"
-run/main_scene="res://cenas/lance.tscn"
+config/description="Do campinho do bairro à Copa do Mundo: cada lance e cada escolha escrevem a sua história."
+config/version="1.0.0"
+run/main_scene="res://cenas/menu.tscn"
 config/features=PackedStringArray("4.5", "Mobile")
+boot_splash/bg_color=Color(0.0431, 0.0667, 0.1098, 1)
+boot_splash/show_image=true
+boot_splash/image="res://imagens/splash.png"
+boot_splash/fullsize=false
+config/icon="res://imagens/icone.png"
+
+[autoload]
+
+Analytics="*res://scripts/servicos/analytics.gd"
+Jogo="*res://scripts/nucleo/jogo.gd"
+Audio="*res://scripts/servicos/audio.gd"
+Tela="*res://scripts/ui/tela.gd"
+Anuncios="*res://scripts/servicos/anuncios.gd"
+Compras="*res://scripts/servicos/compras.gd"
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=405
+window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=4
+window/handheld/orientation=1
+
+[gui]
+
+common/drop_mouse_on_gui_input_disabled=true
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
 
 [rendering]
 
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=1
