@@ -198,6 +198,7 @@ const MEMORIAS := {
 	"selecao": {"titulo": "Com a amarelinha", "desc": "Gol pela Seleção."},
 	"bicicleta": {"titulo": "De bicicleta", "desc": "Gol de bicicleta num escanteio."},
 	"voleio": {"titulo": "De primeira", "desc": "Gol de voleio depois de um lançamento."},
+	"olimpico": {"titulo": "Gol olímpico", "desc": "Gol direto da cobrança de escanteio."},
 	"salvou_defesa": {"titulo": "Atacante que marca", "desc": "Voltou para defender no fim do jogo e segurou o resultado."},
 }
 

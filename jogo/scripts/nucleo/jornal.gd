@@ -56,6 +56,7 @@ static func _veiculos(p: Dictionary, c: Dictionary) -> Array:
 static func _peso(l: Dictionary) -> float:
 	var d: String = l["desfecho"]
 	var w := {"gol": 10.0, "assistencia": 8.0, "desarme": 9.0, "bloqueio": 9.0, "afastou": 8.5, "gol_sofrido": 7.0,
+		"impedimento": 8.5, "falta_tatica": 6.5,
 		"falta_dura": 5.0, "salvou_goleiro": 6.0}.get(d, 4.0) as float
 	if l["acao"] in Jogo.ACOES_VIRAIS and Situacoes.bom(d):
 		w += 3.0
@@ -92,7 +93,7 @@ static func _manchete_lance(l: Dictionary, resumo: Dictionary, p: Dictionary, ap
 	var escolha := _minusc(String(l.get("opcao_texto", "")))
 	var melhor := String(l.get("melhor_texto", ""))
 	var resultado := "a vitória do %s" % nos if resumo.get("venceu", false) else ("o empate" if resumo.get("empate", false) else "a esperança até o fim")
-	if d in ["desarme", "bloqueio", "afastou"] and not resumo.get("venceu", false) and not resumo.get("empate", false) \
+	if d in ["desarme", "bloqueio", "afastou", "impedimento"] and not resumo.get("venceu", false) and not resumo.get("empate", false) \
 			and not l.get("saiu_jogando", false):
 		return _um(rng, ["Mesmo na derrota, %s voltou até a defesa e salvou um gol aos %d'" % [ap, m],
 			"Raça não faltou: %s ajudou na marcação aos %d', mas o %s venceu" % [ap, m, adv]])
@@ -134,6 +135,32 @@ static func _manchete_lance(l: Dictionary, resumo: Dictionary, p: Dictionary, ap
 					return "Matou no peito e guardou: categoria de %s aos %d'" % [ap, m]
 				"conduzir":
 					return "Arrancada e chute: %s resolveu sozinho aos %d'" % [ap, m]
+				"olimpico":
+					return "GOL OLÍMPICO! %s bateu o escanteio direto pro fundo da rede aos %d'" % [ap, m]
+				"paciencia":
+					return "Frieza de veterano: %s esperou o goleiro cair e tocou no canto" % ap
+				"chute_meio":
+					return "DO MEIO DE CAMPO! %s viu o goleiro adiantado e fez um golaço aos %d'" % [ap, m]
+				"falta_rapida":
+					return "Esperteza: %s cobrou rápido enquanto o goleiro arrumava a barreira" % ap
+				"finta_chute":
+					return "Fingiu que ia passar e bateu: %s enganou o estádio inteiro aos %d'" % [ap, m]
+				"chute_primeira":
+					return "De primeira, sem deixar cair: o chute de %s aos %d' foi a decisão perfeita" % [ap, m]
+				"giro":
+					return "Giro em cima do zagueiro! %s fez o pivô e marcou aos %d'" % [ap, m]
+				"roleta":
+					return "ROLETA E GOL! O lance de %s aos %d' está rodando o mundo" % [ap, m]
+				"chapeu":
+					return "Chapéu no zagueiro e voleio: o gol de %s aos %d' é obra de arte" % [ap, m]
+				"elastico":
+					return "O elástico aos %d minutos está rodando o mundo! Que lance!" % m
+				"peixinho":
+					return "PEIXINHO! %s se jogou de cabeça e marcou aos %d'" % [ap, m]
+				"carrinho_gol":
+					return "Na raça: %s se jogou no carrinho e empurrou pro gol aos %d'" % [ap, m]
+				"pressionar", "fechar_passe", "bote_ataque", "antecipar_ataque":
+					return "Pressão que vira gol: %s roubou na saída de bola e marcou aos %d'" % [ap, m]
 			return "%s decide: %s aos %d' foi a escolha certa" % [ap, escolha, m]
 		"assistencia":
 			match a:
@@ -143,6 +170,11 @@ static func _manchete_lance(l: Dictionary, resumo: Dictionary, p: Dictionary, ap
 					return "De calcanhar! A assistência de %s para %s é de outro planeta" % [ap, receptor]
 				"ajeitar":
 					return "Generoso: %s ajeitou de cabeça para %s marcar aos %d'" % [ap, receptor, m]
+				"cruzar":
+					return _um(rng, ["Cruzamento na medida: %s colocou a bola na cabeça de %s aos %d'" % [ap, receptor, m],
+						"Escolheu o cruzamento certo: %s achou %s na área" % [ap, receptor]])
+				"corta_luz":
+					return "Corta-luz genial! %s deixou passar e %s marcou aos %d'" % [ap, receptor, m]
 			if l.get("opcao_descoberta", false) or l.get("descoberta", false):
 				return "%s viu o que ninguém viu: passe para o gol de %s aos %d'" % [ap, receptor, m]
 			return _um(rng, ["Garçom! %s serviu %s, que só empurrou pro gol" % [ap, receptor], "Altruísmo: em vez de chutar, %s tocou para %s marcar" % [ap, receptor]])
@@ -152,6 +184,8 @@ static func _manchete_lance(l: Dictionary, resumo: Dictionary, p: Dictionary, ap
 					return "O carrinho salvador aos %d' garantiu %s" % [m, resultado]
 				"antecipar":
 					return "Leitura de zagueiro: %s antecipou o passe e matou o contra-ataque do %s" % [ap, adv]
+				"acompanhar":
+					return "Fôlego no fim: %s ganhou a corrida do atacante e salvou aos %d'" % [ap, m]
 			return _um(rng, ["Atacante que marca: %s roubou a bola na hora certa aos %d'" % [ap, m],
 				"Voltou até a defesa! O desarme de %s aos %d' valeu %s" % [ap, m, resultado]])
 		"bloqueio":
@@ -164,7 +198,26 @@ static func _manchete_lance(l: Dictionary, resumo: Dictionary, p: Dictionary, ap
 					return "Na raça! O chutão de %s aos %d' aliviou a pressão e segurou %s" % [ap, m, resultado]
 				"deixar_goleiro":
 					return "Comunicação: o \"deixa!\" de %s evitou a confusão na área aos %d'" % [ap, m]
+				"trave_def":
+					return "Em cima da linha! %s ficou na trave e salvou %s aos %d'" % [ap, resultado, m]
+				"marcar":
+					return "Ganhou do grandalhão no alto: %s marcou como zagueiro aos %d'" % [ap, m]
+				"puxar_contra":
+					return "Leitura de jogo: %s saiu na hora certa e puxou o contra-ataque" % ap
+				"proteger":
+					return "Malandragem: %s protegeu a bola com o corpo até sair pela linha de fundo" % ap
+				"recuar_goleiro":
+					return "Sangue frio na área: %s tocou pro goleiro no meio da confusão" % ap
+				"recuar":
+					return "Recuou na hora certa: %s cortou o lançamento de cabeça aos %d'" % [ap, m]
+				"empurrar_lateral":
+					return "Sem frescura: %s espirrou a bola pra lateral e matou a jogada" % ap
 			return "Atacante na defesa! %s voltou até a área e afastou de cabeça aos %d'" % [ap, m]
+		"impedimento":
+			return _um(rng, ["Linha perfeita: %s subiu na hora certa e deixou o atacante impedido aos %d'" % [ap, m],
+				"Inteligência: o impedimento armado por %s aos %d' valeu %s" % [ap, m, resultado]])
+		"falta_tatica":
+			return "Cartão consciente: a falta tática de %s aos %d' matou o contra-ataque do %s" % [ap, m, adv]
 		"falta_dura":
 			if l.get("falta_gol", false):
 				return "Cartão e gol: a falta de %s aos %d' virou gol do %s" % [ap, m, adv]

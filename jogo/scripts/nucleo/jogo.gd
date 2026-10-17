@@ -844,7 +844,8 @@ func contexto_lance(partida: Dictionary, momento: Dictionary, gols_nos: int, gol
 
 
 ## Ações que viralizam (mais fãs e manchetes maiores quando dão certo).
-const ACOES_VIRAIS := ["caneta", "cobertura", "cavadinha", "bicicleta", "voleio", "drible_goleiro", "calcanhar", "falta_curva", "carrinho"]
+const ACOES_VIRAIS := ["caneta", "cobertura", "cavadinha", "bicicleta", "voleio", "drible_goleiro", "calcanhar", "falta_curva", "carrinho",
+	"olimpico", "chapeu", "roleta", "elastico", "peixinho", "chute_meio", "corta_luz", "paciencia", "trave_def"]
 
 
 ## Nota do lance (contribuição para a nota da partida).
@@ -852,6 +853,7 @@ func delta_nota(r: Dictionary) -> float:
 	var d := {"gol": 1.25, "assistencia": 1.0, "passou_defesa": 0.35, "trave": 0.15, "defesa": 0.05,
 		"fora": -0.3, "perdeu": -0.45, "interceptado": -0.4,
 		"desarme": 0.9, "bloqueio": 0.8, "afastou": 0.6, "falta_dura": -0.3, "salvou_goleiro": -0.25, "gol_sofrido": -0.7,
+		"impedimento": 0.7, "falta_tatica": 0.2,
 		}.get(r["desfecho"], 0.0) as float
 	if r["acao"] in ["penalti_esq", "penalti_dir", "cavadinha"] and r["desfecho"] != "gol":
 		d = -0.8
@@ -887,7 +889,7 @@ func finalizar_partida(rel: Dictionary) -> Dictionary:
 			gols += 1
 		if l["desfecho"] == "assistencia":
 			assist += 1
-		if l["desfecho"] in ["desarme", "bloqueio", "afastou"] and int(l.get("minuto", 0)) >= 78:
+		if l["desfecho"] in ["desarme", "bloqueio", "afastou", "impedimento", "falta_tatica"] and int(l.get("minuto", 0)) >= 78:
 			heroi_defesa = true
 		for a in _atributos_da_acao(l["acao"]):
 			xp[a] = float(xp.get(a, 0.0)) + (2.5 if Situacoes.bom(l["desfecho"]) else 1.2)
@@ -1053,7 +1055,39 @@ func _atributos_da_acao(acao: String) -> Array:
 			return ["fisico"]
 		"sair_jogando":
 			return ["drible", "frieza"]
-		"deixar_goleiro":
+		"deixar_goleiro", "recuar_goleiro":
+			return ["visao"]
+		"cruzar":
+			return ["passe", "visao"]
+		"corta_luz":
+			return ["visao", "frieza"]
+		"olimpico", "chute_meio":
+			return ["finalizacao", "visao"]
+		"paciencia", "falta_rapida":
+			return ["frieza", "finalizacao"]
+		"finta_chute", "chute_primeira":
+			return ["finalizacao"]
+		"giro", "roleta":
+			return ["drible", "fisico"]
+		"chapeu", "elastico":
+			return ["drible"]
+		"peixinho":
+			return ["cabeceio"]
+		"carrinho_gol":
+			return ["fisico", "finalizacao"]
+		"pressionar", "bote_ataque":
+			return ["fisico", "velocidade"]
+		"fechar_passe", "antecipar_ataque":
+			return ["visao", "velocidade"]
+		"bloquear", "marcar", "proteger":
+			return ["fisico"]
+		"acompanhar", "puxar_contra":
+			return ["velocidade"]
+		"empurrar_lateral":
+			return ["fisico", "velocidade"]
+		"falta_tatica", "trave_def":
+			return ["frieza", "visao"]
+		"subir_linha", "recuar":
 			return ["visao"]
 	return []
 
@@ -1067,9 +1101,9 @@ func _registrar_tipos(lances: Array) -> void:
 	var u: Array = carreira.get("ultimos_tipos", [])
 	for l in lances:
 		var t: String = l.get("tipo", "")
-		if t != "" and not Situacoes.defensivo(t):
+		if t != "":
 			u.append(t)
-	while u.size() > 5:
+	while u.size() > 8:
 		u.pop_front()
 	carreira["ultimos_tipos"] = u
 
@@ -1347,6 +1381,8 @@ func _memorias_da_partida(resumo: Dictionary, lances: Array, p: Dictionary) -> v
 					id = "bicicleta"
 				"voleio":
 					id = "voleio"
+				"olimpico":
+					id = "olimpico"
 			for m in [id, "primeiro_gol", "segunda_chance" if l.get("segunda_chance", false) else "",
 					"rival" if p.get("rival", false) else "", "final" if p["tipo"] == "final" else "",
 					"selecao" if p["tipo"] == "selecao" else "", "estreia_pro" if carreira["fase"] == "pro" else "",
@@ -1356,7 +1392,7 @@ func _memorias_da_partida(resumo: Dictionary, lances: Array, p: Dictionary) -> v
 					novas.append(m)
 		if l["desfecho"] == "assistencia" and l["acao"] == "lancamento" and _memoria("lancamento", adv_nome, minuto):
 			novas.append("lancamento")
-		if l["desfecho"] in ["desarme", "bloqueio", "afastou"] and minuto >= 78 and (resumo["venceu"] or resumo["empate"]) \
+		if l["desfecho"] in ["desarme", "bloqueio", "afastou", "impedimento"] and minuto >= 78 and (resumo["venceu"] or resumo["empate"]) \
 				and _memoria("salvou_defesa", adv_nome, minuto):
 			novas.append("salvou_defesa")
 	if gols >= 3 and _memoria("hat_trick", adv_nome, 90):

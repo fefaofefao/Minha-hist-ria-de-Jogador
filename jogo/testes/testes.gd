@@ -59,6 +59,15 @@ func _testar_compilacao(pasta: String) -> void:
 
 func _testar_situacoes() -> void:
 	print("== situações")
+	checar(Situacoes.TIPOS.size() == 35, "35 tipos de lance (%d)" % Situacoes.TIPOS.size())
+	checar(Situacoes.TIPOS_ATAQUE.size() + Situacoes.TIPOS_DEFESA.size() == 35, "ataque + defesa = 35")
+	var unicos := {}
+	for t in Situacoes.TIPOS:
+		unicos[t] = true
+	checar(unicos.size() == 35, "tipos sem repetição")
+	for pos in Situacoes.PESOS_POSICAO:
+		for t in Situacoes.TIPOS_ATAQUE:
+			checar(Situacoes.PESOS_POSICAO[pos].has(t), "peso de %s para %s" % [t, pos])
 	var desfechos := {}
 	for tipo in Situacoes.TIPOS:
 		for k in 60:
@@ -148,6 +157,7 @@ func _jogar_partida(p: Dictionary) -> Dictionary:
 func _testar_carreira_completa(indice: int) -> void:
 	var pos: String = Dados.POSICOES[indice % 3]
 	print("== carreira %d (%s)" % [indice, pos])
+	tipos_vistos = {}
 	Jogo.nova_carreira({"nome": "Teste %d" % indice, "apelido": "T%d" % indice, "posicao": pos})
 	checar(Jogo.carreira["fase"] == "prologo", "começa no prólogo")
 	var p := Jogo.preparar_prologo()
@@ -226,7 +236,7 @@ func _testar_carreira_completa(indice: int) -> void:
 		ks.shuffle()
 		for k in ks.slice(0, 30):
 			print("      > ", k)
-	checar(tipos_vistos.size() >= 10, "carreira tem lances variados (%d tipos)" % tipos_vistos.size())
+	checar(tipos_vistos.size() >= 33, "carreira tem lances variados (%d tipos)" % tipos_vistos.size())
 	checar(Jogo.fas() >= 1000, "fãs crescem ao longo da carreira (%d)" % Jogo.fas())
 	checar(amostra_manchetes.size() >= 40, "manchetes variadas (%d)" % amostra_manchetes.size())
 	print("   idade final %d | overall máx %d | jogos %d | gols %d | títulos %d | sonhos %d | memórias %d | países %s | moedas %d" % [

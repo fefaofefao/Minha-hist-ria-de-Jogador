@@ -9,10 +9,10 @@
 
 ## O que tem no jogo
 - **Prólogo:** a final da Copa da Vila, no campo de terra. Sua nota define o clube de base (grande, médio ou peneira).
-- **Momentos decisivos em 1ª pessoa:** 13 situações procedurais (tabela, escanteio com bicicleta, rebote, voleio...), com anti-repetição para nenhum jogo ser igual ao outro. **Olhar ao redor revela jogadas escondidas** (caneta, cobertura, lançamento, a leitura do goleiro no pênalti), com coração acelerado, visão em túnel e instinto.
+- **Momentos decisivos em 1ª pessoa:** **35 tipos de lance** (27 de ataque e 8 de defesa: pivô de costas, gol olímpico, corta-luz, peixinho, linha de impedimento...), com anti-repetição para nenhum jogo ser igual ao outro. **Olhar ao redor revela jogadas escondidas** (caneta, cobertura, lançamento, a leitura do goleiro no pênalti), com coração acelerado, visão em túnel e instinto.
 - **"E se...?":** errou o lance? Reviva-o sabendo o que vai acontecer.
 - **Comemorações** com efeito na carreira e **chuteiras** que você vê nos próprios pés.
-- **Atacante que marca:** no fim do jogo você volta para defender (carrinho, bote, antecipar o passe, afastar o cruzamento) e segura a vitória.
+- **Atacante que marca:** no fim do jogo você volta para defender (carrinho, bote, linha de impedimento, tirar em cima da linha, falta tática) e segura a vitória.
 - **"O que os jornais falaram de você":** manchetes depois de cada partida sobre as suas decisões, e **fãs** que crescem com bons jogos e clubes maiores.
 - **Contrato de verdade:** renegocie o salário (com palpite do empresário e contraproposta) ou peça para sair do clube, e até force a saída se a diretoria não liberar.
 - **Carreira completa:** Sub-15, Sub-17, Sub-20, profissional, 9 países fictícios, Seleção (Mundial), Bola de Cristal e aposentadoria.
@@ -21,7 +21,7 @@
 - **Monetização ética:** anúncios recompensados opcionais e diegéticos, intersticial com limites rígidos, VIP, remover anúncios, pacote inicial e moedas para cosméticos. Dinheiro não compra nota em campo.
 
 ## Tecnologia
-Godot 4.5.1 • 3D 100% procedural com shaders próprios (gramado, céu, torcida animada, rede, bola) • áudio sintetizado • retrato • AdMob, Google Play Billing e Firebase com adaptadores e modo simulado • bateria de testes automatizados (mais de 35 mil verificações).
+Godot 4.5.1 • 3D 100% procedural com shaders próprios (gramado, céu, torcida animada, rede, bola) • áudio sintetizado • retrato • AdMob, Google Play Billing e Firebase com adaptadores e modo simulado • bateria de testes automatizados (mais de 50 mil verificações).
 
 ## Documentação
 - [Documento de Design (GDD)](docs/GDD.md)

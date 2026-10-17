@@ -173,6 +173,9 @@ func _montar_mundo() -> void:
 		_encarar(f, Vector3(0, 0, -20))
 	if atores.has("goleiro"):
 		atores["goleiro"].fazer_pose("goleiro")
+		if s.get("goleiro_caido", false):
+			atores["goleiro"].rotation.z = 1.25
+			atores["goleiro"].position.y = 0.3
 	if atores.has("parceiro") and s["tipo"] in ["chance_area", "contra_ataque", "rebote", "escanteio"]:
 		_encarar(atores["parceiro"], gol)
 	for papel in ["atacante", "ponta"]:
@@ -325,12 +328,20 @@ func _posicionar_bola_inicial() -> void:
 		"ar":
 			bola_no_pe = false
 			var origem: Vector3 = s["origem_bola"]
-			var cab := prota.position + Vector3(0, 1.9, 0)
+			var cab := prota.position + Vector3(0, float(s.get("alvo_bola_y", 1.9)), 0)
 			var t := 0.62
-			bola.position = origem.lerp(cab, t) + Vector3(0, 6.0 * 4.0 * t * (1.0 - t), 0)
+			bola.position = origem.lerp(cab, t) + Vector3(0, float(s.get("arco_bola", 6.0)) * 4.0 * t * (1.0 - t), 0)
+		"rasteira":
+			bola_no_pe = false
+			var origem: Vector3 = s["origem_bola"]
+			bola.position = origem.lerp(_pe_do(prota), 0.55)
+			bola.position.y = 0.11
+		"solta":
+			bola_no_pe = false
+			bola.position = s["pos_bola"]
 		"adv":
 			bola_no_pe = false
-			_bola_com = atores.get("atacante_adv")
+			_bola_com = atores.get(s.get("com_bola", "atacante_adv"))
 			bola.position = _pe_do(_bola_com)
 		"rebote":
 			bola_no_pe = false
@@ -547,11 +558,14 @@ func _botao_opcao(op: Dictionary) -> Button:
 
 func _icone_acao(acao: String) -> String:
 	match acao:
-		"passe", "lancamento", "ajeitar", "calcanhar", "tabela":
+		"passe", "lancamento", "ajeitar", "calcanhar", "tabela", "cruzar", "corta_luz":
 			return "troca"
-		"drible", "arrancada", "caneta", "conduzir", "drible_goleiro":
+		"drible", "arrancada", "caneta", "conduzir", "drible_goleiro", "elastico", "giro", "roleta", "chapeu", \
+				"pressionar", "fechar_passe", "bote_ataque", "antecipar_ataque":
 			return "correr"
-		"carrinho", "bote", "conter", "antecipar", "afastar_cabeca", "chutao", "sair_jogando", "deixar_goleiro":
+		"carrinho", "bote", "conter", "antecipar", "afastar_cabeca", "chutao", "sair_jogando", "deixar_goleiro", \
+				"bloquear", "acompanhar", "empurrar_lateral", "falta_tatica", "subir_linha", "recuar", "marcar", \
+				"trave_def", "puxar_contra", "proteger", "recuar_goleiro":
 			return "escudo"
 		_:
 			return "bola"
@@ -570,7 +584,7 @@ func _intro() -> void:
 	var destino := prota.position
 	var tipo_bola: String = s.get("bola", "pe")
 	# chega correndo (com a bola, ou atrás do atacante nos lances de defesa)
-	if tipo_bola in ["pe", "adv"] and not (s["tipo"] in ["falta", "penalti"]):
+	if tipo_bola in ["pe", "adv"] and not (s["tipo"] in ["falta", "penalti"]) and not s.get("sem_corrida", false):
 		var recuo := frente * 4.0
 		prota.position = destino - recuo
 		_mover(prota, destino, 1.3)
@@ -744,7 +758,7 @@ func _prota_finalizou() -> bool:
 func _receptor() -> Jogador3D:
 	var papel: String = resultado.get("receptor", "")
 	if papel == "":
-		papel = "atacante" if resultado["acao"] in ["lancamento", "calcanhar"] else "parceiro"
+		papel = "atacante" if resultado["acao"] in ["lancamento", "calcanhar", "cruzar"] else "parceiro"
 	return atores.get(papel, atores.get("parceiro", atores.get("atacante")))
 
 
@@ -778,7 +792,7 @@ func _process(delta: float) -> void:
 			if atores.has(papel) and s["tipo"] != "penalti" and s["tipo"] != "falta":
 				var a: Node3D = atores[papel]
 				a.position = a.position.move_toward(prota.position, delta * 0.18)
-		if s["tipo"] == "desarme":
+		if s["tipo"] == "desarme" or s.get("avanca", false):
 			# o atacante deles avança devagar e você acompanha
 			var at: Node3D = atores["atacante_adv"]
 			at.position = at.position.move_toward(Vector3(at.position.x, 0, -40), delta * 0.3)
@@ -840,7 +854,7 @@ func _atualizar_pov(delta: float) -> void:
 	for papel in atores:
 		if papel != "prota":
 			var a: Node3D = atores[papel]
-			a.visible = (a.position + Vector3(0, 1.2, 0)).distance_to(pos_cam) > 0.95
+			a.visible = (a.position + Vector3(0, 1.2, 0)).distance_to(pos_cam) > 1.2
 
 
 func _atualizar_coracao(delta: float) -> void:
@@ -886,9 +900,35 @@ func _executar(pov: bool) -> void:
 		_restaurar(_snapshot)
 	var acao: String = resultado["acao"]
 	var d: String = resultado["desfecho"]
+	if s["tipo"] == "chute_bloqueio":
+		await _seq_bloqueio(acao, d)
+		acao = ""
+	elif s["tipo"] == "linha_impedimento":
+		await _seq_linha(acao, d)
+		acao = ""
 	match acao:
-		"chute", "chute_forte", "cobertura":
+		"chute", "chute_forte", "cobertura", "olimpico", "paciencia", "chute_meio", "falta_rapida", "finta_chute":
 			await _seq_chute_prota(acao, d)
+		"cruzar":
+			await _seq_cruzar(d)
+		"corta_luz":
+			await _seq_corta_luz(d)
+		"giro", "roleta":
+			await _seq_giro(acao, d)
+		"chapeu":
+			await _seq_chapeu(d)
+		"peixinho", "carrinho_gol":
+			await _seq_peixinho(acao, d)
+		"chute_primeira":
+			await _seq_domina(acao, d)
+		"elastico":
+			await _seq_drible(acao, d)
+		"pressionar", "fechar_passe", "bote_ataque", "antecipar_ataque":
+			await _seq_pressao(acao, d)
+		"empurrar_lateral", "falta_tatica":
+			await _seq_desarme(acao, d)
+		"marcar", "trave_def", "puxar_contra", "proteger", "recuar_goleiro":
+			await _seq_afastar(acao, d)
 		"falta_curva", "falta_forte":
 			await _seq_falta(acao, d)
 		"penalti_esq", "penalti_dir", "cavadinha":
@@ -920,12 +960,26 @@ func _executar(pov: bool) -> void:
 
 
 func _seq_chute_prota(acao: String, d: String) -> void:
+	if not bola_no_pe and s.get("bola", "pe") in ["ar", "rasteira", "solta"]:
+		seguir_bola = true
+		await _bola_para(_pe_do(prota), 0.3, 0.4)
+		bola_no_pe = true
+		seguir_bola = false
 	alvo_olhar = Vector3(0, 1.2, -40)
-	_falar("Ajeitou...")
-	await _espera(0.45)
+	_falar({"paciencia": "Espera... espera...", "finta_chute": "Finge o passe...", "olimpico": "Direto pro gol?!",
+		"chute_meio": "Do meio de campo?!", "falta_rapida": "Cobra rápido!"}.get(acao, "Ajeitou..."))
+	await _espera(0.75 if acao == "paciencia" else (0.2 if acao == "falta_rapida" else 0.45))
+	if acao == "paciencia" and atores.has("goleiro"):
+		var gp: Jogador3D = atores["goleiro"]
+		_mergulho(gp, gp.position + Vector3(signf(gp.position.x - prota.position.x + 0.01) * 1.2, 0.2, 0.3), 0.0, 0.35)
+	if acao == "finta_chute":
+		var fz: Jogador3D = atores.get("zagueiro")
+		if fz:
+			_mover(fz, fz.position + Vector3(4.0 * signf(atores.get("parceiro", fz).position.x - fz.position.x), 0, 0), 0.4)
 	alvo_olhar = bola.position
 	await _espera(0.25)
-	var tipo := "forte" if acao == "chute_forte" else ("cobertura" if acao == "cobertura" else "colocado")
+	var tipo: String = {"chute_forte": "forte", "cobertura": "cobertura", "chute_meio": "cobertura", "olimpico": "curva",
+		"paciencia": "rasteiro"}.get(acao, "colocado")
 	await _finalizar_bola(prota, tipo, d, resultado["lado"], resultado["alto"])
 	await _pos_finalizacao(d, true)
 
@@ -1059,7 +1113,7 @@ func _seq_drible(acao: String, d: String) -> void:
 			seguir_bola = false
 			create_tween().tween_property(z, "rotation:x", -1.2, 0.4)
 		_:
-			_falar("Ginga... e corta!")
+			_falar("ELÁSTICO!" if acao == "elastico" else "Ginga... e corta!")
 			_mover(z, z.position + Vector3(-lado * 1.4, 0, 0), 0.3)
 			await _mover(prota, prota.position + Vector3(-lado * 0.8, 0, -0.3), 0.25).finished
 			await _mover(prota, prota.position + Vector3(lado * 2.2, 0, -1.8), 0.35).finished
@@ -1286,7 +1340,23 @@ func _seq_drible_goleiro(d: String) -> void:
 ## Bola longa: domina no peito ou bate de primeira (voleio).
 func _seq_domina(acao: String, d: String) -> void:
 	seguir_bola = true
-	if acao == "voleio":
+	if acao == "chute_primeira":
+		_falar("De primeira!")
+		await _bola_para(_pe_do(prota), 0.05, 0.4)
+		await _finalizar_bola(prota, "forte", d, resultado["lado"], resultado["alto"])
+	elif acao == "domina_chute" and s.get("bola", "") == "rasteira":
+		_falar("Domina...")
+		await _bola_para(_pe_do(prota), 0.05, 0.4)
+		bola_no_pe = true
+		seguir_bola = false
+		balanco = 0.8
+		alvo_olhar = Vector3(0, 1.0, -40)
+		await _mover(prota, prota.position + Vector3(-prota.position.x * 0.2, 0, -1.5), 0.45).finished
+		balanco = 0.0
+		alvo_olhar = bola.position
+		await _espera(0.12)
+		await _finalizar_bola(prota, "colocado", d, resultado["lado"], resultado["alto"])
+	elif acao == "voleio":
 		_falar("De primeira!")
 		await _bola_para(prota.position + Vector3(0, 0.55, -0.7), 0.3, 0.5)
 		prota.fazer_pose("chute")
@@ -1389,6 +1459,34 @@ func _seq_desarme(acao: String, d: String) -> void:
 					_falar("Passou por você!")
 					await _espera(0.4)
 					await _chute_adversario(at, d)
+		"empurrar_lateral":
+			_falar("Espirra pra lateral!")
+			await _mover(prota, at.position + Vector3(lado * 0.5, 0, 0.2), 0.3).finished
+			if d == "afastou":
+				_bola_com = null
+				_tocar_chute(0.7)
+				seguir_no = null
+				seguir_bola = true
+				await _bola_para(Vector3(signf(at.position.x + 0.01) * 36.0, 0.11, at.position.z - 2.0), 0.8, 0.6)
+				await _comemorar_defesa("Pra lateral! Perigo afastado.")
+			else:
+				_mover(at, at.position + Vector3(-lado * 1.8, 0, -3.0), 0.4)
+				_falar("Ele protegeu e passou!")
+				await _espera(0.4)
+				await _chute_adversario(at, d)
+		"falta_tatica":
+			_falar("Para ele!")
+			await _mover(prota, at.position + Vector3(lado * 0.4, 0, 0.2), 0.3).finished
+			if d == "falta_tatica":
+				await _falta_cometida(at, "Falta tática! Cartão, mas o contra-ataque morreu.")
+				Audio.torcida(0.8)
+			elif d == "falta_dura":
+				await _falta_cometida(at, "Falta e cartão... e a falta é perigosa!")
+			else:
+				_mover(at, at.position + Vector3(-lado * 2.0, 0, -3.0), 0.35)
+				_falar("Ele foi mais rápido!")
+				await _espera(0.35)
+				await _chute_adversario(at, d)
 		_:  # conter: acompanha lado a lado e fecha o chute
 			_falar("Fecha o ângulo!")
 			var adiante := at.position + frente * 2.5
@@ -1477,6 +1575,81 @@ func _seq_afastar(acao: String, d: String) -> void:
 				await _espera(0.3)
 				bola_no_pe = false
 				await _chute_adversario(at, d)
+		"marcar":
+			_falar("Cola no grandalhão!")
+			await _mover(prota, at.position + Vector3(0.6, 0, 0.4), 0.4).finished
+			var sobe := create_tween().set_parallel()
+			sobe.tween_property(self, "altura_olhos", ALTURA_OLHOS + 0.4, 0.3)
+			sobe.tween_property(at, "position:y", 0.35, 0.3)
+			await _bola_para(at.position + Vector3(0.3, 2.1, 0), 4.0, 0.7)
+			var desce := create_tween().set_parallel()
+			desce.tween_property(self, "altura_olhos", ALTURA_OLHOS, 0.3)
+			desce.tween_property(at, "position:y", 0.0, 0.3)
+			if d == "afastou":
+				_tocar_chute(0.7)
+				await _bola_para(at.position + fora * 18.0 + Vector3(0, 0.11, 0), 5.0, 1.0)
+				await _comemorar_defesa("Ganhou dele no alto!")
+			else:
+				_falar("Ele subiu mais que você...")
+				await _chute_adversario(at, d, "cabeca")
+		"trave_def":
+			_falar("Fica na trave!")
+			var poste := Vector3(signf(prota.position.x + 0.01) * 3.3, 0, -39.6)
+			_mover(prota, poste, 0.45)
+			await _bola_para(at.position + Vector3(0, 2.0, 0), 4.0, 0.8)
+			_falar("Cabeçada dele...")
+			if d == "afastou":
+				await _bola_para(poste + Vector3(-signf(poste.x) * 0.6, 0.5, 0.2), 0.3, 0.35)
+				prota.fazer_pose("chute")
+				_tocar_chute(0.9)
+				Tela.vibrar(160)
+				await _bola_para(poste + fora * 20.0 + Vector3(0, 0.11, 0), 4.0, 0.9)
+				await _comemorar_defesa("TIROU EM CIMA DA LINHA!")
+			else:
+				await _chute_adversario(at, d, "cabeca")
+		"puxar_contra":
+			_falar("Sai pro contra-ataque!")
+			var zn: Jogador3D = atores.get("zagueiro_nos", at)
+			_mover(prota, prota.position + fora * 6.0, 0.9)
+			if d == "afastou":
+				await _bola_para(zn.position + Vector3(0, 2.0, 0), 4.0, 0.8)
+				_tocar_chute(0.7)
+				await _bola_para(prota.position + fora * 8.0 + Vector3(0, 0.11, 0), 3.5, 0.9)
+				bola_no_pe = true
+				await _comemorar_defesa("O zagueirão afastou e você puxa o contra-ataque!")
+			else:
+				await _bola_para(at.position + Vector3(0, 2.0, 0), 4.0, 0.8)
+				_falar("Ele ficou livre sem você...")
+				await _chute_adversario(at, d, "cabeca")
+		"proteger":
+			_falar("Protege com o corpo!")
+			await _mover(prota, bola.position + Vector3(0, 0, 0.6) - Vector3(0, bola.position.y, 0), 0.35).finished
+			_mover(at, prota.position + Vector3(0.6, 0, 0.6), 0.4)
+			if d == "afastou":
+				await _bola_para(Vector3(bola.position.x, 0.11, -40.8), 0.0, 1.0)
+				await _comemorar_defesa("Tiro de meta! Protegeu com o corpo.")
+			else:
+				await _espera(0.3)
+				_falar("Ele te empurrou e roubou!")
+				await _chute_adversario(at, d, "rasteiro")
+		"recuar_goleiro":
+			_falar("Toca pro goleiro!")
+			var levanta := create_tween().set_parallel()
+			levanta.tween_property(g, "rotation:z", 0.0, 0.35)
+			levanta.tween_property(g, "position:y", 0.0, 0.35)
+			await _bola_para(_pe_do(prota), 0.1, 0.3)
+			prota.fazer_pose("toque")
+			_tocar_chute(0.4)
+			if d == "afastou":
+				await _bola_para(g.position + Vector3(0, 0.11, 0.6), 0.1, 0.5)
+				_bola_com = g
+				await _comemorar_defesa("O goleiro segurou. Que calma!")
+			else:
+				var meio := prota.position.lerp(g.position, 0.5)
+				_mover(at, meio, 0.4)
+				await _bola_para(meio + Vector3(0, 0.11, 0), 0.05, 0.42)
+				_falar("Recuo curto! Ele chegou antes!")
+				await _chute_adversario(at, d, "rasteiro")
 		_:  # deixar pro goleiro
 			_falar("DEIXAAA!")
 			var ponto := prota.position.lerp(g.position, 0.55)
@@ -1515,7 +1688,7 @@ func _comemorar_defesa(texto: String) -> void:
 	await _espera(0.9)
 
 
-func _falta_cometida(at: Jogador3D) -> void:
+func _falta_cometida(at: Jogador3D, texto := "Falta! Cartão amarelo pra você.") -> void:
 	_bola_com = null
 	var queda := create_tween().set_parallel()
 	queda.tween_property(at, "rotation:x", -1.35, 0.35)
@@ -1524,7 +1697,7 @@ func _falta_cometida(at: Jogador3D) -> void:
 	Tela.vibrar(120)
 	await _espera(0.4)
 	_flash(0.45, Color("ffd400"))
-	_falar("Falta! Cartão amarelo pra você.")
+	_falar(texto)
 	await _levantar()
 	await _espera(0.6)
 
@@ -1555,12 +1728,380 @@ func _chute_adversario(a: Jogador3D, d: String, tipo := "colocado") -> void:
 	await _espera(0.8)
 
 
+## Você cruza (escanteio, falta lateral, linha de fundo): o companheiro cabeceia.
+func _seq_cruzar(d: String) -> void:
+	var r: Jogador3D = _receptor()
+	seguir_no = r
+	if not bola_no_pe and s.get("bola", "pe") in ["ar", "rasteira"]:
+		seguir_bola = true
+		await _bola_para(_pe_do(prota), 0.3, 0.4)
+		bola_no_pe = true
+		seguir_bola = false
+	_falar("Levanta na área...")
+	await _espera(0.35)
+	prota.fazer_pose("chute")
+	await _espera(0.16)
+	bola_no_pe = false
+	_tocar_chute(0.8)
+	seguir_no = null
+	seguir_bola = true
+	if d == "interceptado":
+		var z: Jogador3D = _adversario_mais_proximo(r.position)
+		var pulo_z := create_tween()
+		pulo_z.tween_interval(0.6)
+		pulo_z.tween_property(z, "position:y", 0.35, 0.25)
+		pulo_z.tween_property(z, "position:y", 0.0, 0.3)
+		await _bola_para(z.position + Vector3(0, 2.1, 0), 4.0, 0.9)
+		_falar("O zagueiro cortou!")
+		Audio.tocar("uhh", 0.7)
+		await _bola_para(Vector3(rng.randf_range(-15, 15), 0.11, rng.randf_range(-22, -12)), 3.0, 0.9)
+		await _espera(0.4)
+		return
+	var pulo := create_tween()
+	pulo.tween_interval(0.6)
+	pulo.tween_property(r, "position:y", 0.35, 0.3)
+	await _bola_para(r.position + Vector3(0, 2.0, 0), 4.0, 0.95)
+	var nome: String = r.get_meta("nome", "")
+	_falar(("%s sobe..." % nome) if nome != "" else "Sobe...")
+	var desf := "gol" if d == "assistencia" else d
+	await _finalizar_bola(r, "cabeca", desf, resultado["lado"], resultado["alto"], false)
+	create_tween().tween_property(r, "position:y", 0.0, 0.3)
+	await _pos_finalizacao(desf, false)
+
+
+## Corta-luz: você deixa a bola passar para o companheiro que vem atrás.
+func _seq_corta_luz(d: String) -> void:
+	var r: Jogador3D = _receptor()
+	_falar("Deixa passar...")
+	seguir_bola = true
+	_mover(prota, prota.position + Vector3(0.9, 0, 0.2), 0.35)
+	var chegada := r.position + (prota.position - r.position).normalized() * 0.6
+	if d == "interceptado":
+		var z: Jogador3D = _adversario_mais_proximo(chegada)
+		_mover(z, chegada, 0.45)
+		await _bola_para(chegada + Vector3(0, 0.11, 0), 0.05, 0.5)
+		_falar("O zagueiro leu o corta-luz!")
+		Audio.tocar("uhh", 0.7)
+		await _bola_para(Vector3(rng.randf_range(-20, 20), 0.11, rng.randf_range(-15, 0)), 2.0, 0.8)
+		await _espera(0.4)
+		return
+	await _bola_para(chegada + Vector3(0, 0.11, 0), 0.05, 0.5)
+	_encarar(r, Vector3(0, 0, -40))
+	bola.position = _pe_do(r)
+	seguir_bola = false
+	seguir_no = r
+	var nome: String = r.get_meta("nome", "")
+	_falar("CORTA-LUZ! %s bate!" % nome if nome != "" else "CORTA-LUZ!")
+	await _espera(0.15)
+	var desf := "gol" if d == "assistencia" else d
+	await _finalizar_bola(r, "colocado", desf, resultado["lado"], resultado["alto"])
+	await _pos_finalizacao(desf, false)
+
+
+## Pivô: gira em cima do zagueiro (ou roleta) e bate. A câmera vira 180° para o gol.
+func _seq_giro(acao: String, d: String) -> void:
+	var z: Jogador3D = atores["zagueiro"]
+	if not bola_no_pe:
+		seguir_bola = true
+		await _bola_para(_pe_do(prota), 0.3, 0.4)
+		bola_no_pe = true
+		seguir_bola = false
+	_falar("Gira!" if acao == "giro" else "ROLETA!")
+	seguir_no = null
+	alvo_olhar = Vector3(0, 1.2, -40)
+	var lado := 1.0 if prota.position.x <= 0 else -1.0
+	var gira := create_tween()
+	gira.tween_property(prota, "rotation:y", prota.rotation.y + PI * (1.0 if acao == "giro" else 3.0) * lado, 0.45 if acao == "giro" else 0.6)
+	_mover(prota, prota.position + Vector3(lado * 1.3, 0, -0.6), 0.45)
+	await gira.finished
+	_encarar(prota, Vector3(0, 0, -40))
+	if d == "perdeu":
+		_falar("O zagueiro antecipou o giro!")
+		_mover(z, prota.position + Vector3(lado * 0.6, 0, -0.5), 0.25)
+		await _espera(0.22)
+		bola_no_pe = false
+		seguir_bola = true
+		Tela.vibrar(120)
+		await _bola_para(prota.position + Vector3(-lado * 8.0, 0.11, 5.0), 0.6, 0.8)
+		Audio.tocar("uhh", 0.8)
+		await _espera(0.5)
+		return
+	create_tween().tween_property(z, "rotation:y", z.rotation.y + PI * 0.6 * lado, 0.35)
+	alvo_olhar = bola.position
+	await _espera(0.12)
+	await _finalizar_bola(prota, "colocado", d, resultado["lado"], resultado["alto"])
+	await _pos_finalizacao(d, true)
+
+
+## Chapéu: a bola passa por cima do zagueiro e você bate de voleio.
+func _seq_chapeu(d: String) -> void:
+	var z: Jogador3D = atores["zagueiro"]
+	seguir_bola = true
+	if not bola_no_pe:
+		await _bola_para(_pe_do(prota), 0.3, 0.4)
+		bola_no_pe = true
+	_falar("Chapéu!")
+	var lado := 1.0 if prota.position.x <= 0 else -1.0
+	var atras := z.position + (Vector3(0, 0, -40) - z.position).normalized() * 1.8
+	prota.fazer_pose("toque")
+	bola_no_pe = false
+	if d == "perdeu":
+		var pulo := create_tween()
+		pulo.tween_property(z, "position:y", 0.4, 0.25)
+		pulo.tween_property(z, "position:y", 0.0, 0.3)
+		await _bola_para(z.position + Vector3(0, 2.1, 0), 0.5, 0.3)
+		_falar("O zagueiro subiu e cortou!")
+		Audio.tocar("uhh", 0.8)
+		await _bola_para(z.position + Vector3(lado * 8.0, 0.11, 6.0), 2.0, 0.8)
+		await _espera(0.4)
+		return
+	_bola_para(atras + Vector3(0, 1.0, 0), 2.2, 0.55)
+	await _mover(prota, z.position + Vector3(lado * 1.0, 0, 0), 0.3).finished
+	create_tween().tween_property(z, "rotation:y", z.rotation.y + PI, 0.4)
+	await _mover(prota, atras + Vector3(0, 0, 0.9), 0.3).finished
+	alvo_olhar = Vector3(0, 1.2, -40)
+	prota.fazer_pose("chute")
+	await _finalizar_bola(prota, "voleio", d, resultado["lado"], resultado["alto"], false)
+	await _pos_finalizacao(d, true)
+
+
+## Peixinho (a câmera mergulha) ou carrinho para empurrar.
+func _seq_peixinho(acao: String, d: String) -> void:
+	seguir_bola = true
+	var mergulho := create_tween().set_parallel()
+	if acao == "peixinho":
+		_falar("PEIXINHO!")
+		mergulho.tween_property(self, "altura_olhos", 0.75, 0.35)
+		_mover(prota, prota.position + Vector3(0, 0, -1.2), 0.35)
+		await _bola_para(prota.position + Vector3(0, 0.75, -1.4), 0.2, 0.38)
+		_tocar_chute(0.7)
+		await _finalizar_bola(prota, "cabeca_chao", d, resultado["lado"], false, false)
+	else:
+		_falar("Se joga no carrinho!")
+		mergulho.tween_property(self, "altura_olhos", 0.55, 0.3)
+		mergulho.tween_property(self, "rolagem", 0.2, 0.3)
+		_mover(prota, prota.position + Vector3(0, 0, -1.5), 0.35)
+		await _bola_para(prota.position + Vector3(0, 0.15, -1.6), 0.1, 0.38)
+		_tocar_chute(0.8)
+		await _finalizar_bola(prota, "rasteiro", d, resultado["lado"], false, false)
+	await _levantar()
+	await _pos_finalizacao(d, true)
+
+
+## Pressão na saída de bola: rouba do zagueiro deles e finaliza.
+func _seq_pressao(acao: String, d: String) -> void:
+	var z: Jogador3D = atores[s.get("com_bola", "zagueiro_adv")]
+	var g: Jogador3D = atores["goleiro"]
+	seguir_no = z
+	balanco = 1.0
+	_falar("Pressiona!")
+	var lado := 1.0 if prota.position.x <= z.position.x else -1.0
+	if acao == "antecipar_ataque":
+		_bola_com = null
+		z.fazer_pose("toque")
+		_tocar_chute(0.4)
+		seguir_no = null
+		seguir_bola = true
+		var meio := z.position.lerp(g.position, 0.5)
+		if d == "perdeu":
+			_mover(prota, meio + Vector3(0, 0, 1.0), 0.55)
+			await _bola_para(g.position + Vector3(0, 0.11, 0.8), 0.1, 0.5)
+			_falar("O goleiro chegou antes e deu um chutão.")
+			await _bola_para(Vector3(rng.randf_range(-15, 15), 0.11, 10.0), 8.0, 1.2)
+			balanco = 0.0
+			return
+		_mover(prota, meio + Vector3(0, 0, 0.5), 0.5)
+		await _bola_para(meio + Vector3(0, 0.11, 0), 0.1, 0.5)
+		bola_no_pe = true
+		_falar("CORTOU O RECUO!")
+	else:
+		var perto := z.position + (prota.position - z.position).normalized() * 0.9
+		await _mover(prota, perto, 0.6).finished
+		if d == "perdeu":
+			_bola_com = null
+			z.fazer_pose("toque")
+			_tocar_chute(0.5)
+			seguir_no = null
+			seguir_bola = true
+			var ap: Jogador3D = atores.get("zagueiro2", g)
+			await _bola_para(ap.position + Vector3(0, 0.11, 0), 0.2, 0.6)
+			_falar("Ele saiu da pressão...")
+			Audio.tocar("uhh", 0.6)
+			balanco = 0.0
+			await _espera(0.5)
+			return
+		_bola_com = null
+		bola_no_pe = true
+		_tocar_chute(0.5)
+		var tw := create_tween()
+		tw.tween_property(z, "rotation:x", -0.6, 0.2)
+		tw.tween_property(z, "rotation:x", 0.0, 0.3)
+		_falar("ROUBOU NA SAÍDA!")
+	balanco = 0.0
+	seguir_no = null
+	alvo_olhar = Vector3(0, 1.0, -40)
+	_encarar(prota, Vector3(0, 0, -40))
+	_mover(g, Vector3(prota.position.x * 0.4, 0, -37.0), 0.5)
+	await _mover(prota, prota.position + (Vector3(0, 0, -40) - prota.position).normalized() * 2.0 + Vector3(lado * 0.3, 0, 0), 0.45).finished
+	alvo_olhar = bola.position
+	await _finalizar_bola(prota, "rasteiro", d, resultado["lado"], false)
+	await _pos_finalizacao(d, true)
+
+
+## O adversário arma o chute de fora: bloquear, fechar, bote ou antecipar o passe.
+func _seq_bloqueio(acao: String, d: String) -> void:
+	var at: Jogador3D = atores["atacante_adv"]
+	var ap: Jogador3D = atores.get("apoio_adv", at)
+	seguir_no = at
+	var frente_p := (at.position - prota.position).normalized()
+	match acao:
+		"bloquear", "conter":
+			_falar("Se joga!" if acao == "bloquear" else "Fecha o ângulo!")
+			if acao == "bloquear":
+				var desliza := create_tween().set_parallel()
+				desliza.tween_property(self, "altura_olhos", 0.6, 0.3)
+				desliza.tween_property(self, "rolagem", 0.25, 0.3)
+			_mover(prota, prota.position.lerp(at.position, 0.45), 0.35)
+			await _espera(0.25)
+			if d != "bloqueio":
+				await _chute_adversario(at, d)
+				return
+			at.fazer_pose("chute")
+			await _espera(0.16)
+			_bola_com = null
+			_tocar_chute()
+			seguir_no = null
+			seguir_bola = true
+			await _bola_para(_olho() + frente_p * 0.45 + Vector3(0, -0.7, 0), 0.1, 0.16)
+			Tela.vibrar(160)
+			Audio.tocar("chute", 0.8, 0.8)
+			await _bola_para(prota.position + Vector3(signf(frente_p.x + 0.01) * 8.0, 0.11, 6.0), 1.6, 0.7)
+			await _levantar()
+			await _comemorar_defesa("BLOQUEOU! Se jogou na frente da bola!")
+		"bote":
+			_falar("Agora!")
+			await _mover(prota, at.position - frente_p * 0.5, 0.3).finished
+			match d:
+				"desarme":
+					_bola_com = null
+					bola_no_pe = true
+					_tocar_chute(0.5)
+					await _comemorar_defesa("ROUBOU ANTES DO CHUTE!")
+				"falta_dura":
+					await _falta_cometida(at)
+				_:
+					_mover(at, at.position + Vector3(1.5, 0, -1.2), 0.35)
+					await _espera(0.35)
+					await _chute_adversario(at, d)
+		_:  # antecipar o passe para o lado
+			_bola_com = null
+			at.fazer_pose("toque")
+			_tocar_chute(0.5)
+			seguir_no = null
+			seguir_bola = true
+			var meio := at.position.lerp(ap.position, 0.5)
+			if d == "desarme":
+				_mover(prota, meio, 0.4)
+				await _bola_para(meio + Vector3(0, 0.11, 0), 0.2, 0.42)
+				bola_no_pe = true
+				await _comemorar_defesa("ANTECIPOU! Que leitura!")
+			else:
+				_mover(prota, meio + Vector3(0, 0, -1.2), 0.45)
+				await _bola_para(ap.position + Vector3(0, 0.11, 0), 0.2, 0.5)
+				_falar("Chegou atrasado...")
+				await _chute_adversario(ap, d)
+
+
+## Linha de impedimento: subir, acompanhar, recuar ou antecipar o lançamento.
+func _seq_linha(acao: String, d: String) -> void:
+	var pas: Jogador3D = atores["apoio_adv"]
+	var at: Jogador3D = atores["atacante_adv"]
+	var zn: Jogador3D = atores.get("zagueiro_nos")
+	seguir_no = pas
+	var lado := signf(prota.position.x - at.position.x)
+	if lado == 0.0:
+		lado = 1.0
+	var alvo := Vector3(at.position.x * 0.8, 0.11, -33.0)
+	match acao:
+		"subir_linha":
+			_falar("SOBE A LINHA!")
+			_mover(prota, prota.position + Vector3(0, 0, 2.4), 0.5)
+			if zn:
+				_mover(zn, zn.position + Vector3(0, 0, 2.4), 0.5)
+			await _espera(0.3)
+		"recuar":
+			_falar("Protege a área!")
+			alvo = Vector3(prota.position.x, 0.11, prota.position.z - 6.0)
+			_mover(prota, prota.position + Vector3(0, 0, -5.0), 0.8)
+		"acompanhar":
+			_falar("Corre junto!")
+		_:
+			_falar("Lê o lançamento...")
+	_bola_com = null
+	pas.fazer_pose("chute")
+	await _espera(0.16)
+	_tocar_chute(0.7)
+	seguir_no = null
+	seguir_bola = true
+	match acao:
+		"subir_linha":
+			_mover(at, alvo + Vector3(0, 0, 0.6), 1.0)
+			await _bola_para(alvo, 4.0, 1.0)
+			if d == "impedimento":
+				Audio.tocar("apito", 0.9)
+				_flash(0.3, Color("ffd400"))
+				await _comemorar_defesa("IMPEDIDO! Linha perfeita!")
+			else:
+				_falar("Ele estava em condição!")
+				await _chute_adversario(at, d)
+		"acompanhar":
+			_mover(at, alvo + Vector3(0, 0, 0.5), 1.0)
+			if d == "desarme":
+				_mover(prota, alvo + Vector3(lado * 0.5, 0, 0.2), 0.95)
+				await _bola_para(alvo, 4.0, 1.0)
+				_tocar_chute(0.7)
+				await _bola_para(prota.position + Vector3(lado * 9.0, 0.11, 6.0), 1.5, 0.7)
+				await _comemorar_defesa("Chegou antes! Que recuperação!")
+			else:
+				_mover(prota, alvo + Vector3(lado * 0.9, 0, 1.8), 1.0)
+				await _bola_para(alvo, 4.0, 1.0)
+				_falar("Ele ganhou na corrida...")
+				await _chute_adversario(at, d)
+		"recuar":
+			_mover(at, alvo + Vector3(lado * -0.7, 0, 0.4), 1.0)
+			if d == "afastou":
+				create_tween().tween_property(self, "altura_olhos", ALTURA_OLHOS + 0.4, 0.3).set_delay(0.6)
+				await _bola_para(alvo + Vector3(0, 1.9, 0), 4.5, 1.0)
+				_tocar_chute(0.7)
+				create_tween().tween_property(self, "altura_olhos", ALTURA_OLHOS, 0.3)
+				await _bola_para(alvo + Vector3(lado * 10.0, 0.0, 14.0), 5.0, 1.0)
+				await _comemorar_defesa("Cortou de cabeça!")
+			else:
+				await _bola_para(alvo + Vector3(lado * -0.7, 0, 0.4), 4.5, 1.0)
+				_falar("Passou por cima de você...")
+				await _chute_adversario(at, d)
+		_:
+			var meio := pas.position.lerp(at.position, 0.55)
+			if d == "desarme":
+				_mover(prota, Vector3(meio.x, 0, meio.z), 0.6)
+				await _bola_para(Vector3(meio.x, 1.4, meio.z), 2.0, 0.6)
+				await _bola_para(_pe_do(prota), 0.2, 0.25)
+				bola_no_pe = true
+				await _comemorar_defesa("ANTECIPOU O LANÇAMENTO!")
+			else:
+				_mover(prota, Vector3(meio.x, 0, meio.z + 1.0), 0.6)
+				_mover(at, alvo + Vector3(0, 0, 0.5), 1.0)
+				await _bola_para(alvo, 4.0, 1.0)
+				_falar("Passou por cima...")
+				await _chute_adversario(at, d)
+
+
 func _adversario_mais_proximo(p: Vector3) -> Jogador3D:
 	var melhor: Jogador3D = null
 	var dist := INF
 	for papel in atores:
 		var a: Jogador3D = atores[papel]
-		if papel == "goleiro" or papel == "prota" or papel in ["parceiro", "atacante", "ponta"]:
+		if papel == "goleiro" or papel == "prota" or papel in ["parceiro", "atacante", "ponta", "lateral", "zagueiro_nos"]:
 			continue
 		var dd := a.position.distance_to(p)
 		if dd < dist:
@@ -1621,6 +2162,8 @@ func _finalizar_bola(atirador: Jogador3D, tipo: String, d: String, lado: float, 
 				_camera_lenta = true
 				Engine.time_scale = 0.4)
 	var g: Jogador3D = atores.get("goleiro")
+	if s.get("sem_goleiro", false) and atirador == prota:
+		g = null  # o goleiro está fora do lance
 	var alvo := Vector3.ZERO
 	var y_alto := 1.95 if alto else 0.35
 	if tipo == "cabeca_chao" or tipo == "rasteiro":
@@ -1705,7 +2248,7 @@ func _pos_finalizacao(d: String, prota_chutou: bool) -> void:
 			balanco = 0.0
 		"defesa":
 			Audio.tocar("uhh", 1.0)
-			_falar("Defendeu o goleiro!")
+			_falar(s.get("texto_defesa", "Defendeu o goleiro!"))
 			await _espera(0.6)
 		"trave":
 			Audio.tocar("uhh", 1.0)
@@ -1857,7 +2400,7 @@ func _finalizar() -> void:
 	var titulo := {"gol": "GOL!", "assistencia": "ASSISTÊNCIA!", "defesa": "DEFENDEU", "fora": "PRA FORA",
 		"trave": "NA TRAVE", "perdeu": "PERDEU A BOLA", "interceptado": "INTERCEPTADO", "passou_defesa": "QUASE!",
 		"desarme": "DESARME!", "bloqueio": "TRAVOU O CHUTE!", "afastou": "AFASTOU O PERIGO!", "falta_dura": "CARTÃO AMARELO",
-		"salvou_goleiro": "O GOLEIRO SALVOU", "gol_sofrido": "GOL DELES..."}
+		"salvou_goleiro": "O GOLEIRO SALVOU", "gol_sofrido": "GOL DELES...", "impedimento": "IMPEDIDO!", "falta_tatica": "FALTA TÁTICA"}
 	_falar(titulo.get(d, ""))
 	Audio.torcida(0.45)
 	await _espera(0.5 if not auto else 0.05)

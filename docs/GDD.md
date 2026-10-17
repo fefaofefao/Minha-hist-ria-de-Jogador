@@ -1,4 +1,4 @@
-# Minha História de Jogador: Documento de Design (v1.2)
+# Minha História de Jogador: Documento de Design (v1.3)
 
 > Simulação de carreira de futebol com **decisões em primeira pessoa**. Godot 4.5, 3D low-poly, Android, retrato, sessões curtas.
 
@@ -28,15 +28,15 @@
 | "E se...?" | Se errar, pode **reviver o lance** (anúncio, ficha ou VIP), uma vez por partida, sabendo o que vai acontecer |
 | Replay | Câmera de TV (ou atrás do gol no pênalti), que pode ser pulada |
 
-**13 situações procedurais:**
-- **Ataque (11):** chance na área, mano a mano, contra-ataque, cruzamento, falta com barreira, pênalti, **tabela** (com calcanhar escondido), **escanteio** (com **bicicleta** para quem tem Físico), **rebote** (o goleiro espalma, decisão de reflexo com menos tempo, drible no goleiro caído), **chute de longe** (encobrir do meio da rua, lateral passando) e **bola nas costas da zaga** (dominar no peito, voleio, driblar o goleiro que sai).
-- **Defesa (2), o atacante que volta pra marcar:** nos minutos finais, se o placar está empatado ou com vantagem de 1 gol, o jogo pode chamar um lance defensivo. **Desarme** (carrinho, bote, acompanhar e fechar o chute, antecipar o passe escondido) e **afastar** o cruzamento na nossa área (de cabeça, chutão, dominar e sair jogando, gritar "deixa!" para o goleiro). Acertar segura o resultado (+nota, memória "Atacante que marca", manchete). Errar pode virar cartão, falta perigosa ou gol deles.
+**35 situações procedurais**, cada uma com cenário, opções (uma escondida, revelada lendo o jogo) e jogada própria em 3D:
+- **Ataque (27):** chance na área, mano a mano, contra-ataque, cruzamento, falta frontal, pênalti, **tabela** (calcanhar), **escanteio** (bicicleta), **rebote** (drible no goleiro caído), **chute de longe**, **bola nas costas da zaga** (peito, voleio), **cobrança de escanteio** (você cobra; gol olímpico escondido), **linha de fundo** (cruzar, rolar pra trás, chute cruzado), **cara a cara com o goleiro** (esperar ele cair), **voleio na entrada da área** (chapéu no zagueiro), **pivô de costas** (giro e roleta; a câmera vira 180° para o gol), **dois contra um**, **falta lateral** (cruzar no segundo pau), **cruzamento rasteiro** (de primeira ou corta-luz), **arrancada do meio-campo** (chute do meio de campo), **peixinho / carrinho na pequena área**, **pressão na saída de bola** (cortar o recuo), **falta de longe** (cobrança rápida), **passe decisivo** (escolher entre 4 companheiros, inversão escondida), **gol vazio** (o goleiro saiu), **lateral na área** e **drible na ponta** (elástico).
+- **Defesa (8), o atacante que volta pra marcar:** nos minutos finais, se o placar está empatado ou com vantagem de 1 gol, o jogo chama um lance defensivo: **desarme** (carrinho, bote, antecipar), **afastar o cruzamento**, **cobertura na lateral**, **escanteio contra** (cortar no primeiro pau, marcar o grandalhão, ficar na trave, sair pro contra-ataque), **bloquear o chute de fora**, **rebote na nossa área** (bicão, proteger até sair, tocar pro goleiro), **dois contra um** (retardar, falta tática) e **linha de impedimento** (subir a linha, acompanhar, recuar, antecipar o lançamento). Acertar segura o resultado (+nota, memória "Atacante que marca", manchete). Errar pode virar cartão, falta perigosa ou gol deles.
 
-**Variedade:** os tipos das últimas partidas e da própria partida ficam bem mais raros (anti-repetição), cada tipo tem vários textos, posições sorteadas e opções que mudam (ex.: às vezes "encher o pé", às vezes "cortar o zagueiro"). O texto de abertura muda com minuto e placar ("Precisamos do gol!", "SEGURA!").
+**Variedade:** cada posição tem pesos próprios para os 27 lances de ataque; os tipos das últimas 8 jogadas e da própria partida ficam bem mais raros (anti-repetição), cada tipo tem vários textos, posições sorteadas e opções que mudam (ex.: às vezes "encher o pé", às vezes "cortar o zagueiro"). O texto de abertura muda com minuto e placar ("Precisamos do gol!", "SEGURA!").
 
 **Chance de cada opção** = base + atributos × peso − pressão × (1 − Frieza) − (força do adversário − overall) + confiança.
 
-**Desfechos:** gol, assistência, defesa, trave, fora, perdeu a bola, interceptado e "quase"; na defesa: desarme, chute travado, afastou, cartão amarelo, o goleiro salvou e gol sofrido. A nota do lance soma na nota da partida.
+**Desfechos:** gol, assistência, defesa, trave, fora, perdeu a bola, interceptado e "quase"; na defesa: desarme, chute travado, afastou, impedimento, falta tática, cartão amarelo, o goleiro salvou e gol sofrido. A nota do lance soma na nota da partida.
 
 **"O que os jornais falaram de você:"** no relatório de toda partida aparecem até 3 manchetes de veículos fictícios (Jornal do Bairro, Blog da Base, Diário do Gol, Rádio Arquibancada, @resenha.fc...). Elas falam das SUAS decisões: o lance que viralizou ("A caneta aos 40 minutos está rodando o mundo! Que lance!"), a escolha certa ("O chute no canto foi a melhor decisão"), a melhor opção que você não usou ("'Tocar pro Juninho' era a melhor opção, diz comentarista"), a hesitação ("Travou!"), o esforço na defesa ("O carrinho salvador aos 87' garantiu a vitória") e os fãs. A manchete principal também entra nas notícias do hub.
 
@@ -57,7 +57,7 @@
 - **Sonhos (11):** primeiro contrato, carro, casa da mãe, Seleção, exterior, título, artilharia, 100 gols, Mundial, Bola de Cristal e reformar o campinho da Vila. Alguns são comprados com o dinheiro da carreira.
 - **Rival:** nasce na final do bairro, evolui em paralelo, aparece nas notícias e nos clássicos, e é comparado com você no legado.
 - **Fãs:** contador de seguidores que cresce com boas atuações. Clubes maiores (tier, exterior, Seleção), finais e clássicos multiplicam o ganho; lances que viralizam (caneta, bicicleta, cobertura, cavadinha, voleio, carrinho...) e o esforço defensivo somam mais. Jogo ruim faz perder alguns. Trocar de clube traz a torcida nova, postar nas redes dá um pouco, os fãs aumentam o valor do patrocínio e os marcos (1 mil, 10 mil, 100 mil, 1 mi, 10 mi, 50 mi) dão moedas. Aparecem no hub, no relatório, na carreira e no legado.
-- **Álbum de memórias (19):** cada lance marcante vira uma figurinha. As bloqueadas mostram a dica do que fazer.
+- **Álbum de memórias (20):** cada lance marcante vira uma figurinha. As bloqueadas mostram a dica do que fazer.
 
 ## 6. Retenção
 | Sistema | Gancho |

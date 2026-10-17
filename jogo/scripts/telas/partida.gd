@@ -313,6 +313,7 @@ func _momento(m: Dictionary) -> void:
 			_narrar("Você volta pra ajudar na marcação. O time administra o placar.", "escudo")
 			return
 		else:
+			m["tipo"] = Situacoes.sortear_defesa(_rng, Jogo.carreira.get("ultimos_tipos", []))
 			_narrar("O %s pressiona! Você volta pra ajudar a defender..." % adv["sigla"], "escudo", UI.LARANJA, true)
 			Audio.torcida(0.8)
 			await get_tree().create_timer(0.6).timeout
@@ -333,7 +334,9 @@ func _momento(m: Dictionary) -> void:
 		"assistencia":
 			gols_nos += 1
 			_narrar("ASSISTÊNCIA SUA! %s  (nota %s)" % [r.get("opcao_texto", ""), sinal], "troca", UI.VERDE, true)
-		"desarme", "bloqueio", "afastou":
+		"falta_tatica":
+			_narrar("Falta tática: cartão pra você, mas o contra-ataque morreu  (nota %s)" % sinal, "escudo", UI.OURO)
+		"desarme", "bloqueio", "afastou", "impedimento":
 			_narrar("QUE VOLTA! Você salvou na defesa: %s  (nota %s)" % [r.get("opcao_texto", ""), sinal], "escudo", UI.VERDE, true)
 			mundo.festa_torcida(3)
 		"gol_sofrido":
@@ -553,7 +556,8 @@ func _relatorio(r: Dictionary) -> void:
 			var nome_d := {"gol": "Gol", "assistencia": "Assistência", "defesa": "Defesa do goleiro", "fora": "Pra fora", "trave": "Trave",
 				"perdeu": "Perdeu a bola", "interceptado": "Interceptado", "passou_defesa": "Quase",
 				"desarme": "Desarme", "bloqueio": "Chute travado", "afastou": "Afastou o perigo", "falta_dura": "Cartão amarelo",
-				"salvou_goleiro": "Driblado (o goleiro salvou)", "gol_sofrido": "Gol sofrido"}.get(d, d) as String
+				"salvou_goleiro": "Driblado (o goleiro salvou)", "gol_sofrido": "Gol sofrido",
+				"impedimento": "Deixou impedido", "falta_tatica": "Falta tática"}.get(d, d) as String
 			var tx := UI.paragrafo("%s • %s" % [l.get("opcao_texto", ""), nome_d], 21, UI.TEXTO if bom else UI.TEXTO2)
 			tx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			linha.add_child(tx)
