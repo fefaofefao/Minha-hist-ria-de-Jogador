@@ -588,6 +588,8 @@ func _relatorio(r: Dictionary) -> void:
 	var extras: Array = r.get("efeitos", []).duplicate()
 	if float(r.get("salario", 0)) > 0:
 		extras.append("+%s de salário" % UI.formatar_dinheiro(r["salario"]))
+	if r.get("teto_subiu", false):
+		extras.append("Atuação de gala: seu potencial subiu!")
 	if r.has("lesao"):
 		extras.append("LESÃO: %d semana%s fora" % [r["lesao"], "s" if r["lesao"] > 1 else ""])
 	if not extras.is_empty():

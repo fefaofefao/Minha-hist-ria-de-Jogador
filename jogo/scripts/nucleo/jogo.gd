@@ -11,6 +11,22 @@ const ARQ_PERFIL := "user://perfil.json"
 const ARQ_CARREIRA := "user://carreira.json"
 const VERSAO := 1
 const CATEGORIAS := ["Sub-15", "Sub-17", "Sub-20", "Profissional"]
+## Balanceamento (dificuldade mediana, calibrada com `testes.tscn -- balanco`).
+const BAL := {
+	"expoente_forca": 1.2,
+	"gols_fundo_nos": 0.48,     # gols do seu time fora dos seus lances (média por jogo, x lambda)
+	"gols_fundo_adv": 1.0,      # gols do adversário (x lambda)      # quanto a diferença de força entre os times pesa no placar
+	"xp_acerto": 2.4,           # XP por atributo em lance bem-sucedido
+	"xp_erro": 0.6,             # XP por atributo em lance errado
+	"gala_nota": 8.8,           # nota que eleva o teto (potencial)
+	"gala_potencial": 0.25,
+	"ritmo_xp": 0.36,           # multiplicador geral de evolução dos atributos
+	"bola_media": 7.8,          # média mínima para a Bola de Cristal
+	"mercado_fama_div": 20.0,   # fama / x entra no valor de mercado
+	"mercado_media": 2.5,       # peso da média da temporada no valor de mercado
+	"mercado_folga": 2.0,
+	"valor_europa": 78.0,       # valor de mercado mínimo para propostas da Europa       # clubes até x pontos acima do seu valor fazem proposta
+}
 const FATOR_CATEGORIA := {"Sub-15": 0.68, "Sub-17": 0.74, "Sub-20": 0.8, "Profissional": 1.0}
 
 var perfil := {}
@@ -251,10 +267,15 @@ func dar_xp(xp: Dictionary) -> Dictionary:
 			continue
 		var atual := float(carreira["atributos"][a])
 		var margem := clampf((pot - atual) / 25.0, 0.06, 1.0)
-		var ganho := float(xp[a]) * 0.42 * fator_idade(idade) * margem
+		var ganho := float(xp[a]) * BAL["ritmo_xp"] * fator_idade(idade) * margem * _fator_confianca()
 		carreira["atributos"][a] = minf(atual + ganho, 99.0)
 		ganhos[a] = ganho
 	return ganhos
+
+
+## Confiança alta rende mais nos treinos (de 0,85x com confiança 0 até 1,2x com 100).
+func _fator_confianca() -> float:
+	return 0.85 + float(carreira["status"].get("moral", 50.0)) * 0.0035
 
 
 func forma() -> float:
@@ -503,7 +524,7 @@ func nova_temporada() -> void:
 			var gid := "gen_%s_%d" % [pais, k]
 			var cor := Color.from_hsv(rng.randf(), rng.randf_range(0.5, 0.9), rng.randf_range(0.5, 0.95))
 			times[gid] = {"nome": nomes[k], "sigla": nomes[k].replace(" ", "").left(3).to_upper(), "pais": pais, "tier": 3,
-				"forca": rng.randf_range(70.0, 79.0), "cor": "#" + cor.to_html(false), "calcao": "#ffffff"}
+				"forca": rng.randf_range(76.0, 86.0), "cor": "#" + cor.to_html(false), "calcao": "#ffffff"}
 			ids.append(gid)
 			k += 1
 	ids.append(meu)
@@ -720,15 +741,15 @@ func preparar_partida(jogo: Dictionary) -> Dictionary:
 	var f_nos := forca_time(meu) + (float(overall()) - forca_time(meu)) * 0.15
 	var f_adv := forca_time(adv)
 	var casa: bool = jogo.get("casa", true)
-	var lam_nos := 1.25 * pow(f_nos / f_adv, 2.4) * (1.12 if casa else 0.92)
-	var lam_adv := 1.25 * pow(f_adv / f_nos, 2.4) * (0.92 if casa else 1.12)
+	var lam_nos := 1.25 * pow(f_nos / f_adv, BAL["expoente_forca"]) * (1.12 if casa else 0.92)
+	var lam_adv := 1.25 * pow(f_adv / f_nos, BAL["expoente_forca"]) * (0.92 if casa else 1.12)
 	var gols_bg: Array = []
 	var nomes: Array = Dados.NOMES_COMPANHEIROS.duplicate()
 	nomes.shuffle()
-	for g in _poisson(lam_nos * 0.72):
+	for g in _poisson(lam_nos * BAL["gols_fundo_nos"]):
 		gols_bg.append({"minuto": rng.randi_range(3, 90), "time": "nos", "autor": nomes[gols_bg.size() % nomes.size()]})
 	var rival_aqui: bool = adv == carreira["rival"]["clube"]
-	for g in _poisson(lam_adv * 0.85):
+	for g in _poisson(lam_adv * BAL["gols_fundo_adv"]):
 		var autor: String = carreira["rival"]["nome"] if rival_aqui and rng.randf() < 0.5 else "Camisa %d" % rng.randi_range(7, 11)
 		gols_bg.append({"minuto": rng.randi_range(3, 90), "time": "eles", "autor": autor})
 	gols_bg.sort_custom(func(a, b) -> bool: return a["minuto"] < b["minuto"])
@@ -850,8 +871,8 @@ const ACOES_VIRAIS := ["caneta", "cobertura", "cavadinha", "bicicleta", "voleio"
 
 ## Nota do lance (contribuição para a nota da partida).
 func delta_nota(r: Dictionary) -> float:
-	var d := {"gol": 1.25, "assistencia": 1.0, "passou_defesa": 0.35, "trave": 0.15, "defesa": 0.05,
-		"fora": -0.3, "perdeu": -0.45, "interceptado": -0.4,
+	var d := {"gol": 0.95, "assistencia": 0.75, "passou_defesa": 0.3, "trave": 0.1, "defesa": 0.0,
+		"fora": -0.35, "perdeu": -0.5, "interceptado": -0.45,
 		"desarme": 0.9, "bloqueio": 0.8, "afastou": 0.6, "falta_dura": -0.3, "salvou_goleiro": -0.25, "gol_sofrido": -0.7,
 		"impedimento": 0.7, "falta_tatica": 0.2,
 		}.get(r["desfecho"], 0.0) as float
@@ -892,8 +913,8 @@ func finalizar_partida(rel: Dictionary) -> Dictionary:
 		if l["desfecho"] in ["desarme", "bloqueio", "afastou", "impedimento", "falta_tatica"] and int(l.get("minuto", 0)) >= 78:
 			heroi_defesa = true
 		for a in _atributos_da_acao(l["acao"]):
-			xp[a] = float(xp.get(a, 0.0)) + (2.5 if Situacoes.bom(l["desfecho"]) else 1.2)
-	nota += 0.3 if venceu else (-0.2 if not empate else 0.0)
+			xp[a] = float(xp.get(a, 0.0)) + (BAL["xp_acerto"] if Situacoes.bom(l["desfecho"]) else BAL["xp_erro"])
+	nota += 0.2 if venceu else (-0.25 if not empate else 0.0)
 	if heroi_defesa and (venceu or empate):
 		nota += 0.25  # o esforço na defesa segurou o resultado
 	nota += rng.randf_range(-0.2, 0.2)
@@ -916,6 +937,13 @@ func finalizar_partida(rel: Dictionary) -> Dictionary:
 
 	if jogou:
 		resumo["ganhos"] = dar_xp(xp)
+		# atuações de gala elevam o teto do jogador (até +5 sobre o potencial de nascença)
+		var jog: Dictionary = carreira["jogador"]
+		if not jog.has("potencial_base"):
+			jog["potencial_base"] = float(jog["potencial"])
+		if nota >= BAL["gala_nota"] and float(jog["potencial"]) < float(jog["potencial_base"]) + 5.0:
+			jog["potencial"] = minf(float(jog["potencial"]) + BAL["gala_potencial"], float(jog["potencial_base"]) + 5.0)
+			resumo["teto_subiu"] = true
 		carreira["ultimas_notas"].append(nota)
 		if carreira["ultimas_notas"].size() > 5:
 			carreira["ultimas_notas"].pop_front()
@@ -1261,7 +1289,7 @@ func _talvez_selecao() -> void:
 	for i in 3:
 		var n: Array = nacoes[i]
 		var nid := "nac_%s" % n[1]
-		temp["times"][nid] = {"nome": n[0], "sigla": n[1], "pais": "int", "tier": 5, "forca": 80.0 + i * 3 + rng.randf_range(-2, 3),
+		temp["times"][nid] = {"nome": n[0], "sigla": n[1], "pais": "int", "tier": 5, "forca": 84.0 + i * 3 + rng.randf_range(-2, 3),
 			"cor": "#" + n[2], "calcao": "#" + n[3]}
 		temp["selecao"].append(nid)
 	temp["torneio"] = torneio
@@ -1465,7 +1493,7 @@ func fim_de_temporada() -> Dictionary:
 		concluir_sonho("artilheiro")
 	if media >= 7.6 and int(temp["jogos"]) >= 5:
 		resumo["premios"].append("Craque da temporada")
-	if carreira["fase"] == "pro" and media >= 7.8 and int(temp["gols"]) + int(temp["assist"]) >= 10 and overall() >= 86:
+	if carreira["fase"] == "pro" and media >= BAL["bola_media"] and int(temp["gols"]) + int(temp["assist"]) >= 15 and overall() >= 88:
 		resumo["premios"].append("BOLA DE CRISTAL")
 		carreira["estat"]["bolas_cristal"] = int(carreira["estat"]["bolas_cristal"]) + 1
 		concluir_sonho("bola_cristal")
@@ -1527,7 +1555,7 @@ func _gerar_ofertas() -> Array:
 	var lista: Array = []
 	var atual: String = carreira["clube"]
 	var na_base: bool = carreira["fase"] == "base"
-	var valor := ov + float(carreira["status"]["fama"]) / 12.0 + (media_temporada() - 6.5) * 2.0
+	var valor := ov + float(carreira["status"]["fama"]) / BAL["mercado_fama_div"] + (media_temporada() - 6.7) * BAL["mercado_media"]
 	if carreira["flags"].has("empresario"):
 		valor += 2.0
 	var saida: String = carreira.get("contrato", {}).get("pedido_saida", "")
@@ -1561,7 +1589,7 @@ func _gerar_ofertas() -> Array:
 		if saida == "":
 			lista.append(_oferta(atual, "Renovar contrato", true))
 		var paises := ["br"]
-		if valor >= 74.0:
+		if valor >= BAL["valor_europa"]:
 			paises.append_array(["pt", "es", "en", "it", "de", "fr"])
 		if carreira["flags"].has("interesse_golfo") or valor >= 72.0:
 			paises.append("ar")
@@ -1610,7 +1638,7 @@ func _clubes_por_valor(valor: float, pais: String, n: int) -> Array:
 		if c["pais"] != pais:
 			continue
 		var f := float(c["forca"])
-		if f <= valor + 4.0 and f >= valor - 16.0:
+		if f <= valor + BAL["mercado_folga"] and f >= valor - 16.0:
 			r.append(id)
 	r.shuffle()
 	return r.slice(0, n)

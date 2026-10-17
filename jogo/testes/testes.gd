@@ -30,6 +30,8 @@ func _ready() -> void:
 		await _testar_lances()
 	if tudo or "telas" in args:
 		await _testar_telas()
+	if "balanco" in args:
+		_balanco()
 	print("\n==== %d verificações, %d falhas ====" % [verificacoes, falhas])
 	Jogo.apagar_carreira()
 	get_tree().quit(1 if falhas > 0 else 0)
@@ -402,3 +404,178 @@ func _testar_telas() -> void:
 		checar(is_instance_valid(n), "tela abre: " + t)
 		n.queue_free()
 		await get_tree().process_frame
+
+
+# ---------------------------------------------------------------- balanceamento
+# Não roda na bateria padrão: `-- balanco` simula muitas carreiras com dois perfis
+# ("casual" escolhe ao acaso; "bom" lê o jogo, escolhe a melhor opção e treina com foco)
+# e imprime estatísticas para calibrar a dificuldade.
+
+func _balanco() -> void:
+	for politica in ["casual", "bom"]:
+		var n := 24
+		var picos: Array = []
+		var acum := {"bolas": 0, "com_bola": 0, "titulos": 0, "selecao": 0, "mundial": 0, "exterior": 0, "gigante": 0,
+			"gols": 0, "jogos": 0, "pico_86": 0, "pico_90": 0, "fas": 0, "idade_fim": 0, "media": 0.0, "tit_sel": 0, "tit_base": 0, "temporadas": 0}
+		for i in n:
+			var st := _carreira_politica(i, politica)
+			picos.append(st["pico"])
+			for k in st:
+				if acum.has(k):
+					acum[k] += st[k]
+			acum["com_bola"] += 1 if st["bolas"] > 0 else 0
+			acum["pico_86"] += 1 if st["pico"] >= 86 else 0
+			acum["pico_90"] += 1 if st["pico"] >= 90 else 0
+		picos.sort()
+		print("== %s (%d carreiras)" % [politica, n])
+		print("   pico de overall: min %d | mediana %d | máx %d" % [picos[0], picos[n / 2], picos[-1]])
+		print("   pico >= 86: %d%% | pico >= 90: %d%%" % [acum["pico_86"] * 100 / n, acum["pico_90"] * 100 / n])
+		print("   Bola de Cristal: %d%% das carreiras (%.1f por carreira)" % [acum["com_bola"] * 100 / n, float(acum["bolas"]) / n])
+		print("   títulos: Seleção %.1f | base %.1f | profissional %.1f (em %.1f temporadas)" % [float(acum["tit_sel"]) / n,
+			float(acum["tit_base"]) / n, float(acum["titulos"] - acum["tit_sel"] - acum["tit_base"]) / n, float(acum["temporadas"]) / n])
+		print("   títulos/carreira %.1f | convocações %.1f | jogou exterior %d%% | clube gigante %d%%" % [
+			float(acum["titulos"]) / n, float(acum["selecao"]) / n, acum["exterior"] * 100 / n, acum["gigante"] * 100 / n])
+		print("   gols/carreira %d | jogos %d | média das notas %.2f | aposenta aos %.1f | fãs %s" % [
+			acum["gols"] / n, acum["jogos"] / n, acum["media"] / n, float(acum["idade_fim"]) / n, UI.formatar_numero(acum["fas"] / n)])
+
+
+func _carreira_politica(indice: int, politica: String) -> Dictionary:
+	var bom := politica == "bom"
+	var pos: String = Dados.POSICOES[indice % 3]
+	Jogo.nova_carreira({"nome": "B%d" % indice, "apelido": "B%d" % indice, "posicao": pos})
+	var st := {"pico": 0, "bolas": 0, "titulos": 0, "selecao": 0, "mundial": 0, "exterior": 0, "gigante": 0, "tit_sel": 0, "tit_base": 0, "temporadas": 0}
+	var r := _partida_politica(Jogo.preparar_prologo(), bom)
+	var ofertas := Jogo.ofertas_prologo(r["nota"])
+	Jogo.escolher_clube_base(ofertas["clubes"][0])
+	var pesos: Dictionary = Dados.PESOS_OVERALL[pos]
+	var temporadas := 0
+	while Jogo.tem_carreira() and temporadas < 30:
+		temporadas += 1
+		var objs := Jogo.objetivos_disponiveis()
+		Jogo.definir_objetivo(objs[0] if bom else objs[rng.randi() % objs.size()])
+		var semanas := 0
+		while not Jogo.temporada_acabou() and semanas < 30:
+			semanas += 1
+			Jogo.aplicar_agenda(_agenda_politica(bom, pesos))
+			var e := Jogo.sortear_evento()
+			if not e.is_empty():
+				var validas: Array = []
+				for k in e["opcoes"].size():
+					if Jogo.opcao_evento_disponivel(e["opcoes"][k]):
+						validas.append(k)
+				if not validas.is_empty():
+					Jogo.resolver_evento(e, validas[rng.randi() % validas.size()])
+			if Jogo.situacao_titular() in ["fora", "lesionado"]:
+				Jogo.simular_sem_jogar()
+			else:
+				_partida_politica(Jogo.preparar_partida(Jogo.proximo_jogo()), bom)
+			st["pico"] = maxi(st["pico"], Jogo.overall())
+		if Jogo.carreira["temp"].get("torneio", "") != "":
+			st["selecao"] += 1
+		var res := Jogo.fim_de_temporada()
+		if Jogo.deve_aposentar() or (Jogo.pode_aposentar() and Jogo.overall() < 70 and rng.randf() < 0.5):
+			break
+		var ofs := Jogo.ofertas_temporada()
+		var o: Dictionary = ofs[rng.randi() % ofs.size()]
+		if bom:
+			for x in ofs:
+				if Jogo.forca_time(x["clube"]) > Jogo.forca_time(o["clube"]):
+					o = x
+		Jogo.aceitar_oferta(o)
+		var c := Jogo.clube(Jogo.carreira["clube"])
+		if c["pais"] != "br":
+			st["exterior"] = 1
+		if int(c["tier"]) >= 5:
+			st["gigante"] = 1
+	var cr := Jogo.carreira
+	var e2: Dictionary = cr["estat"]
+	st["bolas"] = int(e2["bolas_cristal"])
+	st["titulos"] = int(e2["titulos"])
+	for t in cr["titulos"]:
+		if "Mundial" in String(t["nome"]) or "Continental" in String(t["nome"]):
+			st["tit_sel"] += 1
+		elif "Estadual" in String(t["nome"]):
+			st["tit_base"] += 1
+	st["gols"] = int(e2["gols"])
+	st["jogos"] = int(e2["jogos"])
+	st["media"] = float(e2["notas_soma"]) / maxf(1.0, float(e2["jogos"]))
+	st["fas"] = Jogo.fas()
+	st["temporadas"] = temporadas
+	st["idade_fim"] = int(cr["jogador"]["idade"])
+	Jogo.aposentar()
+	return st
+
+
+func _agenda_politica(bom: bool, pesos: Dictionary) -> Array:
+	var acoes := Jogo.acoes_disponiveis()
+	if not bom:
+		acoes.shuffle()
+		return acoes.slice(0, 2)
+	var energia := float(Jogo.carreira["status"]["energia"])
+	var moral := float(Jogo.carreira["status"]["moral"])
+	var r: Array = []
+	if "fisioterapia" in acoes:
+		r.append("fisioterapia")
+	if energia < 45.0:
+		r.append("descansar")
+	elif moral < 45.0:
+		r.append("familia")
+	# treino que mais pesa no overall da posição
+	var melhor := ""
+	var nota := -1.0
+	for id in acoes:
+		var xp: Dictionary = Dados.AGENDA[id].get("xp", {})
+		if xp.is_empty() or id in r:
+			continue
+		var v := 0.0
+		var pot := float(Jogo.carreira["jogador"]["potencial"])
+		for a in xp:
+			var margem := clampf((pot - Jogo.atributo(a)) / 25.0, 0.06, 1.0)
+			v += float(xp[a]) * (float(pesos.get(a, 0.0)) + 0.04) * margem
+		if Dados.AGENDA[id].has("custo") and float(Jogo.carreira["dinheiro"]) < float(Dados.AGENDA[id]["custo"]) * 3.0:
+			continue
+		if v > nota:
+			nota = v
+			melhor = id
+	if melhor != "":
+		r.append(melhor)
+	while r.size() < 2:
+		r.append("descansar" if energia < 70.0 else "treino_tatico")
+	return r.slice(0, 2)
+
+
+func _partida_politica(p: Dictionary, bom: bool) -> Dictionary:
+	var lances: Array = []
+	for m in p["momentos"]:
+		var ctx := Jogo.contexto_lance(p, m, 0, 0)
+		var s := Situacoes.gerar(m["tipo"], ctx)
+		var visiveis: Array = []
+		for op in s["opcoes"]:
+			if not op["oculta"] or rng.randf() < (0.85 if bom else 0.4):
+				visiveis.append(op)
+		var op: Dictionary = visiveis[rng.randi() % visiveis.size()]
+		if bom and rng.randf() < 0.85:
+			for o in visiveis:
+				if float(o["chance"]) > float(op["chance"]):
+					op = o
+		var res := Situacoes.resolver(s, op, rng.randf() < (0.03 if bom else 0.12), rng)
+		res["minuto"] = m["minuto"]
+		res["tipo"] = s["tipo"]
+		res["opcao_descoberta"] = op["oculta"]
+		lances.append(res)
+	var gn := 0
+	var ga := 0
+	for g in p["gols_bg"]:
+		if g["time"] == "nos":
+			gn += 1
+		else:
+			ga += 1
+	for l in lances:
+		if l["desfecho"] in ["gol", "assistencia"]:
+			gn += 1
+		if l["desfecho"] == "gol_sofrido":
+			ga += 1
+	var pen = null
+	if p.get("mata_mata", false) and gn == ga:
+		pen = {"nos": 5, "adv": 4} if rng.randf() < 0.5 else {"nos": 3, "adv": 4}
+	return Jogo.finalizar_partida({"gols_nos": gn, "gols_adv": ga, "lances": lances, "penaltis": pen})

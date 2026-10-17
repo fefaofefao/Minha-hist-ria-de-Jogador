@@ -42,7 +42,8 @@
 
 ## 4. Progressão
 - **8 atributos:** Finalização, Passe, Drible, Cabeceio, Velocidade, Físico, Visão, Frieza. O overall é ponderado pela posição (Atacante, Ponta, Meia).
-- **XP** vem de treinos e dos lances; o ganho diminui com a idade e perto do potencial (de 80 a 92, mais herança).
+- **XP** vem de treinos e dos lances (acerto rende 4x mais que erro); o ganho diminui com a idade e perto do potencial (de 80 a 92, mais herança) e sobe com a confiança (0,85x a 1,2x). **Atuações de gala** (nota 8,8+) elevam o potencial em +0,25, até +5.
+- **Balanceamento (dificuldade mediana):** todos os números ficam na constante `BAL` de `jogo.gd` e são calibrados com `godot --headless res://testes/testes.tscn -- balanco`, que simula 24 carreiras de um jogador casual (escolhe ao acaso) e 24 de um jogador bom (lê o jogo e escolhe bem). Resultado atual: casual chega a overall ~81, ~3 títulos e quase nunca à Bola de Cristal; o bom chega a ~85 (30% passam de 90), ~11 títulos e 1 em cada 3 carreiras ganha a Bola de Cristal (overall 88+, média 7,8+, 15 gols+assistências).
 - **Envelhecimento:** depois dos 30, Velocidade e Físico caem mais rápido; Visão, Frieza e Passe aguentam melhor.
 - **Escalação:** depende de overall, forma (média recente), relação com o técnico e energia, comparados com a força do clube. Pode dar titular, reserva (entra no 2º tempo) ou fora da lista.
 - **Lesões:** o risco sobe com energia baixa. Há tratamento por anúncio ou moedas.
