@@ -2,7 +2,8 @@
 
 | Versão | Arquivo | SHA-256 |
 |---|---|---|
-| 1.3.0 (versionCode 4) | `MinhaHistoriaDeJogador-v1.3.0.apk` | `52442c7d75f3cda5ad1913ff0cf19d6a646008979985b30b381aae0f08a8ddac` |
+| 1.3.1 (versionCode 5) | `MinhaHistoriaDeJogador-v1.3.1.apk` | `dada50664a16c6cdbd9382989e1c58cac76097cbc5376249cd86b076b6b1621d` |
+| 1.3.0 (versionCode 4) | removido (está no histórico desta branch) | `52442c7d75f3cda5ad1913ff0cf19d6a646008979985b30b381aae0f08a8ddac` |
 | 1.2.0 (versionCode 3) | removido (está no histórico desta branch) | `a717aa959d4cf483f42e1416a5d6999c0302adb5efcba863cb4f5cb5e5a9da5a` |
 | 1.1.0 (versionCode 2) | removido (está no histórico desta branch) | `77c04ff672b53636fda01fed1d4574dce5c077584518665a1432f6ec75fc4e5c` |
 | 1.0.0 (versionCode 1) | removido (está no histórico desta branch) | `cf7fdb9abdb4c68ec77c1ba1b8d84de31583d2a983f525c4477a914c95752399` |
